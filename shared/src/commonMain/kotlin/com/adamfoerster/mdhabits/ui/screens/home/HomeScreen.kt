@@ -130,7 +130,7 @@ fun HomeScreen(
                 val sections = listOf(
                     strings.todaySection to state.todayTasks,
                     strings.weeklySection to state.weeklyTasks,
-                    strings.adhocSection to state.adhocTasks,
+                    strings.adhocSection to state.visibleAdhocTasks,
                 ).filter { it.second.isNotEmpty() }
                 sections.forEachIndexed { index, (label, rows) ->
                     TaskSectionLabel(label, topPadding = if (index == 0) 12 else 16)

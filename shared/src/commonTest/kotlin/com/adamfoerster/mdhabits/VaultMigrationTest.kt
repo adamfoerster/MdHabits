@@ -10,6 +10,7 @@ import com.adamfoerster.mdhabits.data.markdown.MarkdownThemeRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownValueRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownWeekStore
 import com.adamfoerster.mdhabits.data.markdown.VaultInspector
+import com.adamfoerster.mdhabits.data.repo.InMemoryTaskRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryThemeRepository
 import com.adamfoerster.mdhabits.domain.model.AnnualTheme
 import com.adamfoerster.mdhabits.domain.model.Penalty
@@ -115,6 +116,9 @@ class SettingsVaultMigrationTest : MainDispatcherTest() {
             fixedWeekCalculator(),
             LocaleController(settings),
             FakeAppInfo(),
+            NoopMdPrayerRepository(),
+            InMemoryTaskRepository(),
+            disabledMdPrayerSync(),
         )
 
         viewModel.pickFolder()

@@ -7,6 +7,7 @@ import com.adamfoerster.mdhabits.data.repo.InMemoryThemeRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryValueRepository
 import com.adamfoerster.mdhabits.domain.model.Penalty
 import com.adamfoerster.mdhabits.domain.model.PersonalValue
+import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.usecase.ApplyPenaltyUseCase
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
@@ -36,6 +37,7 @@ class HomeViewModelTest : MainDispatcherTest() {
             completeTask = CompleteTaskUseCase(tasks, ledger),
             applyPenalty = ApplyPenaltyUseCase(ledger),
             weekCalculator = wc,
+            syncMdPrayer = disabledMdPrayerSync(wc),
         )
     }
 
@@ -83,5 +85,24 @@ class HomeViewModelTest : MainDispatcherTest() {
         vm.onApplyPenalty(Penalty("p1", "Skipped", pointCost = 8))
 
         assertEquals(12, vm.state.value.balance)
+    }
+
+    @Test
+    fun completedAdhocTaskDropsOffVisibleListButStaysCounted() = runTest {
+        val tasks = InMemoryTaskRepository()
+        val ledger = InMemoryPointsLedgerRepository()
+        val adhoc = Task("t1", "Fix bike", points = 5, recurrence = Recurrence.ADHOC)
+        tasks.upsert(adhoc)
+
+        val vm = newViewModel(tasks = tasks, ledger = ledger)
+        keepHot(vm.state)
+
+        assertTrue(vm.state.value.visibleAdhocTasks.any { it.task.id == "t1" })
+
+        vm.onToggleComplete(adhoc, completed = true)
+
+        assertFalse(vm.state.value.visibleAdhocTasks.any { it.task.id == "t1" })
+        assertTrue(vm.state.value.adhocTasks.first { it.task.id == "t1" }.completed)
+        assertTrue(vm.state.value.allTasks.first { it.task.id == "t1" }.completed)
     }
 }

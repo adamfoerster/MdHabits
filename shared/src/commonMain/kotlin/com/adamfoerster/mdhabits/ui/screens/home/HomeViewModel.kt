@@ -14,6 +14,7 @@ import com.adamfoerster.mdhabits.domain.repository.ThemeRepository
 import com.adamfoerster.mdhabits.domain.repository.ValueRepository
 import com.adamfoerster.mdhabits.domain.usecase.ApplyPenaltyUseCase
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
+import com.adamfoerster.mdhabits.domain.usecase.SyncMdPrayerUseCase
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -39,6 +40,8 @@ data class HomeUiState(
     val weeklyTasks: List<HomeTaskRow> = emptyList(),
     /** Unscheduled tasks, done whenever. */
     val adhocTasks: List<HomeTaskRow> = emptyList(),
+    /** Ad-hoc tasks still pending — completed ones drop off the list once checked off. */
+    val visibleAdhocTasks: List<HomeTaskRow> = emptyList(),
     val balance: Int = 0,
     /** True while the current week's note doesn't exist yet — the review is what creates it. */
     val showReviewCta: Boolean = false,
@@ -56,10 +59,17 @@ class HomeViewModel(
     private val completeTask: CompleteTaskUseCase,
     private val applyPenalty: ApplyPenaltyUseCase,
     private val weekCalculator: WeekCalculator,
+    private val syncMdPrayer: SyncMdPrayerUseCase,
 ) : ViewModel() {
 
     val weekId: String = weekCalculator.weekId()
     private val year = weekCalculator.today().year
+
+    init {
+        // The app has no background-sync infra, so opening Home is the sync trigger; the use case
+        // is a no-op early-return unless the integration is enabled and fully configured.
+        viewModelScope.launch { syncMdPrayer() }
+    }
 
     val state: StateFlow<HomeUiState> = combine(
         combine(
@@ -98,6 +108,7 @@ class HomeViewModel(
             todayTasks = rows.filter { it.task.isDueOn(today.dayOfWeek) },
             weeklyTasks = rows.filter { it.task.recurrence == Recurrence.WEEKLY },
             adhocTasks = rows.filter { it.task.recurrence == Recurrence.ADHOC },
+            visibleAdhocTasks = rows.filter { it.task.recurrence == Recurrence.ADHOC && !it.completed },
             balance = balance,
             showReviewCta = !weekStarted,
             loading = false,

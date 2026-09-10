@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adamfoerster.mdhabits.core.i18n.LocalStrings
 import com.adamfoerster.mdhabits.domain.model.Recurrence
+import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.ui.theme.Paper
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.isoDayNumber
@@ -179,6 +180,41 @@ private fun FlowChips(options: List<LinkOption>, selectedIds: List<String>, onTo
                 label = option.label,
                 selected = option.id in selectedIds,
             ) { onToggle(option.id) }
+        }
+    }
+}
+
+/** Single-select sheet: tap a task to link it (e.g. to the mdPrayer integration in Settings). */
+@Composable
+fun TaskPickerSheet(
+    title: String,
+    subtitle: String,
+    tasks: List<Task>,
+    selectedTaskId: String?,
+    onDismiss: () -> Unit,
+    onSelect: (Task) -> Unit,
+) {
+    PaperSheet(title = title, subtitle = subtitle, onDismiss = onDismiss) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            tasks.forEach { task ->
+                val selected = task.id == selectedTaskId
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .paperCard(radius = 13, border = if (selected) Paper.accent else Paper.border)
+                        .paperClick { onSelect(task) }
+                        .padding(horizontal = 16.dp, vertical = 15.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    GlyphPlate(if (selected) "✓" else "○", hand = false)
+                    Text(
+                        task.title,
+                        Modifier.weight(1f),
+                        style = sansStyle(15.sp, Paper.ink, FontWeight.SemiBold),
+                    )
+                }
+            }
         }
     }
 }

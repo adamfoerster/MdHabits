@@ -1,5 +1,6 @@
 package com.adamfoerster.mdhabits.domain.repository
 
+import com.adamfoerster.mdhabits.core.datetime.WeekRange
 import com.adamfoerster.mdhabits.domain.model.AnnualTheme
 import com.adamfoerster.mdhabits.domain.model.Penalty
 import com.adamfoerster.mdhabits.domain.model.PersonalValue
@@ -67,6 +68,15 @@ interface PointsLedgerRepository {
     suspend fun append(event: PointsEvent)
     suspend fun eventsForWeek(weekId: String): List<PointsEvent>
     suspend fun weeklyReport(weekId: String): WeeklyReport
+}
+
+/** Read-only view into an mdPrayer vault folder, used by the optional daily-prayer sync. */
+interface MdPrayerRepository {
+    /** Whether [ref] looks like a real mdPrayer vault (a decodable `log/<yyyy-MM>.md` note). */
+    suspend fun looksLikeMdPrayerVault(ref: String): Boolean
+
+    /** Dates within [range] mdPrayer recorded as fully prayed (`prayed == total > 0`). */
+    suspend fun completedDates(ref: String, range: WeekRange): Set<LocalDate>
 }
 
 interface WeeklyReviewRepository {

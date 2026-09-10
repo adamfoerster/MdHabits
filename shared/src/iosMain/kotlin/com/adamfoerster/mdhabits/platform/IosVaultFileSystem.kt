@@ -6,12 +6,15 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
+import platform.Foundation.NSData
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSString
+import platform.Foundation.NSURL
 import platform.Foundation.NSUTF8StringEncoding
 import platform.Foundation.NSUserDomainMask
+import platform.Foundation.create
 import platform.Foundation.stringWithContentsOfFile
 import platform.Foundation.writeToFile
 
@@ -21,7 +24,7 @@ import platform.Foundation.writeToFile
  * effect immediately); until then it falls back to `Documents/MdHabits`, which the user can expose
  * in the Files app. Security-scoped bookmark support arrives with the real iOS folder picker.
  */
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, kotlinx.cinterop.BetaInteropApi::class)
 class IosVaultFileSystem(private val settings: AppSettings) : VaultFileSystem {
 
     private fun root(): String =
@@ -68,19 +71,54 @@ class IosVaultFileSystem(private val settings: AppSettings) : VaultFileSystem {
     }
 
     override suspend fun listIn(ref: String, dir: String): List<String> = withContext(Dispatchers.IO) {
-        if (!ref.startsWith("/")) return@withContext emptyList()
-        NSFileManager.defaultManager
-            .contentsOfDirectoryAtPath("$ref/$dir", null)
-            .orEmpty()
-            .filterIsInstance<String>()
-            .filter { it.endsWith(".md") }
+        withScopedAccess(ref) { path ->
+            NSFileManager.defaultManager
+                .contentsOfDirectoryAtPath("$path/$dir", null)
+                .orEmpty()
+                .filterIsInstance<String>()
+                .filter { it.endsWith(".md") }
+        }.orEmpty()
     }
 
     override suspend fun readIn(ref: String, dir: String, name: String): String? =
         withContext(Dispatchers.IO) {
-            if (!ref.startsWith("/")) return@withContext null
-            NSString.stringWithContentsOfFile(
-                "$ref/$dir/$name", encoding = NSUTF8StringEncoding, error = null,
-            )
+            withScopedAccess(ref) { path ->
+                NSString.stringWithContentsOfFile(
+                    "$path/$dir/$name", encoding = NSUTF8StringEncoding, error = null,
+                )
+            }
         }
+
+    /**
+     * Resolves [ref] to a filesystem path and runs [block] against it. A plain absolute path
+     * (this app's own sandbox) is used as-is; a `"bookmark:<base64>"` ref (a folder outside this
+     * app's sandbox, picked via [IosVaultPicker]) is resolved to a security-scoped [NSURL] and
+     * wrapped in start/stopAccessingSecurityScopedResource for the duration of [block].
+     */
+    private fun <T> withScopedAccess(ref: String, block: (String) -> T): T? = when {
+        ref.startsWith("/") -> block(ref)
+        ref.startsWith(BOOKMARK_PREFIX) -> {
+            val data = NSData.create(base64EncodedString = ref.removePrefix(BOOKMARK_PREFIX), options = 0uL)
+            val url = data?.let {
+                NSURL.URLByResolvingBookmarkData(
+                    it, options = 0uL, relativeToURL = null, bookmarkDataIsStale = null, error = null,
+                )
+            }
+            if (url == null) {
+                null
+            } else {
+                val granted = url.startAccessingSecurityScopedResource()
+                try {
+                    block(url.path ?: return null)
+                } finally {
+                    if (granted) url.stopAccessingSecurityScopedResource()
+                }
+            }
+        }
+        else -> null
+    }
+
+    private companion object {
+        const val BOOKMARK_PREFIX = "bookmark:"
+    }
 }

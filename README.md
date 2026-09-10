@@ -35,6 +35,22 @@ make them pass, update the release notes, bump the version) are documented in
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
 
+### 0.10.0 — mdPrayer integration
+
+- Optional integration with mdPrayer in Settings: point it at the same folder mdPrayer
+  stores its data in, link one habit to mdPrayer's daily prayer log, and MdHabits marks
+  that habit done for the days mdPrayer recorded a fully-prayed day in the current week.
+  Syncs automatically on app open and on demand via a "Sync now" button.
+- The iOS folder picker is now fully implemented (it previously always canceled),
+  using `UIDocumentPickerViewController` and a security-scoped bookmark — needed for
+  the mdPrayer integration, and usable for the main data folder as well.
+
+### 0.9.1 — Ad-hoc tasks drop off once completed
+
+- Completing an ad-hoc (unscheduled) task now removes it from the Home task list right
+  away instead of leaving it checked off in the Ad-hoc section. It still counts toward
+  the week's points balance and the "done of" progress total.
+
 ### 0.9.0 — Onboarding recognizes existing vaults
 
 - Picking a folder during onboarding that already contains an annual theme note

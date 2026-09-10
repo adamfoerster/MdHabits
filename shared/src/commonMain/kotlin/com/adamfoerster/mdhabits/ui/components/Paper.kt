@@ -258,6 +258,28 @@ fun CommitCheckbox(checked: Boolean, modifier: Modifier = Modifier) {
     }
 }
 
+/** On/off pill switch, e.g. for enabling the mdPrayer integration in Settings. */
+@Composable
+fun PaperSwitch(checked: Boolean, modifier: Modifier = Modifier, onCheckedChange: (Boolean) -> Unit) {
+    Box(
+        modifier = modifier
+            .width(46.dp)
+            .height(27.dp)
+            .clip(RoundedCornerShape(99.dp))
+            .background(if (checked) Paper.accent else Paper.dashed)
+            .paperClick { onCheckedChange(!checked) }
+            .padding(3.dp),
+        contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
+    ) {
+        Box(
+            Modifier
+                .size(21.dp)
+                .clip(RoundedCornerShape(99.dp))
+                .background(Paper.card),
+        )
+    }
+}
+
 @Composable
 fun CheckMark(color: Color, size: androidx.compose.ui.unit.Dp, stroke: Float = 2.4f) {
     androidx.compose.foundation.Canvas(Modifier.size(size)) {

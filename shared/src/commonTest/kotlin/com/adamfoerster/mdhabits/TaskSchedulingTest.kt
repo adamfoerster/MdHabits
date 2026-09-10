@@ -68,6 +68,7 @@ class HomeSectionsTest : MainDispatcherTest() {
         completeTask = CompleteTaskUseCase(tasks, ledger, fixedClock(iso), TimeZone.UTC),
         applyPenalty = ApplyPenaltyUseCase(ledger, fixedClock(iso)),
         weekCalculator = fixedWeekCalculator(iso),
+        syncMdPrayer = disabledMdPrayerSync(fixedWeekCalculator(iso)),
     )
 
     @Test

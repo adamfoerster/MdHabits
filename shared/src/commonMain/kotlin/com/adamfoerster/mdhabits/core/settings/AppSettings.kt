@@ -15,4 +15,16 @@ interface AppSettings {
 
     /** BCP-47 language tag chosen by the user, or null to follow the system language. */
     var languageTag: String?
+
+    /** Whether the optional mdPrayer sync is turned on. */
+    var mdPrayerEnabled: Boolean
+
+    /** Human-readable label of the chosen mdPrayer folder, shown in Settings. */
+    var mdPrayerFolderDisplayName: String?
+
+    /** Platform reference to the mdPrayer folder (Android tree Uri string / iOS bookmark). */
+    var mdPrayerFolderRef: String?
+
+    /** Id of the [com.adamfoerster.mdhabits.domain.model.Task] mdPrayer completions are applied to. */
+    var mdPrayerLinkedTaskId: String?
 }

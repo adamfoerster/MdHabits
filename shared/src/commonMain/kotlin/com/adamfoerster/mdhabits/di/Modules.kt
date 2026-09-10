@@ -2,6 +2,7 @@ package com.adamfoerster.mdhabits.di
 
 import com.adamfoerster.mdhabits.core.datetime.WeekCalculator
 import com.adamfoerster.mdhabits.core.i18n.LocaleController
+import com.adamfoerster.mdhabits.data.markdown.MarkdownMdPrayerRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownPenaltyRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownPointsLedgerRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownRewardRepository
@@ -11,6 +12,7 @@ import com.adamfoerster.mdhabits.data.markdown.MarkdownValueRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownWeekStore
 import com.adamfoerster.mdhabits.data.markdown.MarkdownWeeklyReviewRepository
 import com.adamfoerster.mdhabits.data.markdown.VaultInspector
+import com.adamfoerster.mdhabits.domain.repository.MdPrayerRepository
 import com.adamfoerster.mdhabits.domain.repository.PenaltyRepository
 import com.adamfoerster.mdhabits.domain.repository.PointsLedgerRepository
 import com.adamfoerster.mdhabits.domain.repository.RewardRepository
@@ -22,6 +24,7 @@ import com.adamfoerster.mdhabits.domain.usecase.AchieveObjectiveUseCase
 import com.adamfoerster.mdhabits.domain.usecase.ApplyPenaltyUseCase
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
 import com.adamfoerster.mdhabits.domain.usecase.RedeemRewardUseCase
+import com.adamfoerster.mdhabits.domain.usecase.SyncMdPrayerUseCase
 import com.adamfoerster.mdhabits.storage.VaultMigrator
 import com.adamfoerster.mdhabits.ui.onboarding.OnboardingViewModel
 import com.adamfoerster.mdhabits.ui.screens.home.HomeViewModel
@@ -52,6 +55,7 @@ val dataModule = module {
     single { MarkdownThemeRepository(get()) } bind ThemeRepository::class
     single { MarkdownPointsLedgerRepository(get()) } bind PointsLedgerRepository::class
     single { MarkdownWeeklyReviewRepository(get()) } bind WeeklyReviewRepository::class
+    single { MarkdownMdPrayerRepository(get()) } bind MdPrayerRepository::class
     single { VaultMigrator(get(), get()) }
     single { VaultInspector(get()) }
     single { LocaleController(get()) }
@@ -63,14 +67,15 @@ val domainModule = module {
     factory { AchieveObjectiveUseCase(get(), get()) }
     factory { ApplyPenaltyUseCase(get()) }
     factory { RedeemRewardUseCase(get(), get()) }
+    factory { SyncMdPrayerUseCase(get(), get(), get(), get(), get()) }
 }
 
 val viewModelModule = module {
     viewModel { OnboardingViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-    viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { RedeemViewModel(get(), get(), get(), get()) }
     viewModel { RegisterViewModel(get(), get(), get(), get(), get(), get()) }
-    viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { ThemeViewModel(get(), get(), get()) }
     viewModel { ReviewViewModel(get(), get(), get(), get(), get()) }
 }

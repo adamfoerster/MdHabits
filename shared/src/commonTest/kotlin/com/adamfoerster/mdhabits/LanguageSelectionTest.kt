@@ -25,6 +25,10 @@ class FakeAppSettings : AppSettings {
     override var vaultDisplayName: String? = null
     override var vaultRef: String? = null
     override var languageTag: String? = null
+    override var mdPrayerEnabled: Boolean = false
+    override var mdPrayerFolderDisplayName: String? = null
+    override var mdPrayerFolderRef: String? = null
+    override var mdPrayerLinkedTaskId: String? = null
 }
 
 class FakeVaultPicker : VaultPicker {
@@ -85,6 +89,7 @@ class LanguageSelectionViewModelTest : MainDispatcherTest() {
         val viewModel = SettingsViewModel(
             settings, FakeVaultPicker(), VaultMigrator(FakeVaultFileSystem(), settings),
             InMemoryThemeRepository(), fixedWeekCalculator(), controller, FakeAppInfo(),
+            NoopMdPrayerRepository(), InMemoryTaskRepository(), disabledMdPrayerSync(),
         )
 
         viewModel.setLanguage(Lang.PT)
@@ -100,6 +105,7 @@ class LanguageSelectionViewModelTest : MainDispatcherTest() {
             settings, FakeVaultPicker(), VaultMigrator(FakeVaultFileSystem(), settings),
             InMemoryThemeRepository(), fixedWeekCalculator(), LocaleController(settings),
             FakeAppInfo(version = "0.8.0"),
+            NoopMdPrayerRepository(), InMemoryTaskRepository(), disabledMdPrayerSync(),
         )
 
         assertEquals("0.8.0", viewModel.version)

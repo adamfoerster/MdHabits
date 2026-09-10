@@ -83,10 +83,30 @@ class AndroidAppSettings(context: Context) : AppSettings {
         get() = prefs.getString(KEY_LANG, null)
         set(value) = prefs.edit().putString(KEY_LANG, value).apply()
 
+    override var mdPrayerEnabled: Boolean
+        get() = prefs.getBoolean(KEY_MDPRAYER_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(KEY_MDPRAYER_ENABLED, value).apply()
+
+    override var mdPrayerFolderDisplayName: String?
+        get() = prefs.getString(KEY_MDPRAYER_NAME, null)
+        set(value) = prefs.edit().putString(KEY_MDPRAYER_NAME, value).apply()
+
+    override var mdPrayerFolderRef: String?
+        get() = prefs.getString(KEY_MDPRAYER_REF, null)
+        set(value) = prefs.edit().putString(KEY_MDPRAYER_REF, value).apply()
+
+    override var mdPrayerLinkedTaskId: String?
+        get() = prefs.getString(KEY_MDPRAYER_TASK, null)
+        set(value) = prefs.edit().putString(KEY_MDPRAYER_TASK, value).apply()
+
     private companion object {
         const val KEY_ONBOARDED = "onboarding_complete"
         const val KEY_VAULT_NAME = "vault_display_name"
         const val KEY_VAULT_REF = "vault_ref"
         const val KEY_LANG = "language_tag"
+        const val KEY_MDPRAYER_ENABLED = "mdprayer_enabled"
+        const val KEY_MDPRAYER_NAME = "mdprayer_folder_display_name"
+        const val KEY_MDPRAYER_REF = "mdprayer_folder_ref"
+        const val KEY_MDPRAYER_TASK = "mdprayer_linked_task_id"
     }
 }

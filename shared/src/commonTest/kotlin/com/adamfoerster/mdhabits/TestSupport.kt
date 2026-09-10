@@ -1,7 +1,13 @@
 package com.adamfoerster.mdhabits
 
 import com.adamfoerster.mdhabits.core.datetime.WeekCalculator
+import com.adamfoerster.mdhabits.core.datetime.WeekRange
 import com.adamfoerster.mdhabits.core.platform.AppInfo
+import com.adamfoerster.mdhabits.data.repo.InMemoryPointsLedgerRepository
+import com.adamfoerster.mdhabits.data.repo.InMemoryTaskRepository
+import com.adamfoerster.mdhabits.domain.repository.MdPrayerRepository
+import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
+import com.adamfoerster.mdhabits.domain.usecase.SyncMdPrayerUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -27,6 +33,23 @@ fun fixedClock(iso: String = "2026-07-02T12:00:00Z"): Clock = object : Clock {
 fun fixedWeekCalculator(iso: String = "2026-07-02T12:00:00Z") = WeekCalculator(
     clock = fixedClock(iso),
     timeZone = TimeZone.UTC,
+)
+
+/** An [MdPrayerRepository] that never finds a vault or completed days — used where a test just
+ *  needs a harmless stand-in, e.g. a disabled [SyncMdPrayerUseCase]. */
+class NoopMdPrayerRepository : MdPrayerRepository {
+    override suspend fun looksLikeMdPrayerVault(ref: String): Boolean = false
+    override suspend fun completedDates(ref: String, range: WeekRange): Set<kotlinx.datetime.LocalDate> = emptySet()
+}
+
+/** A [SyncMdPrayerUseCase] that always no-ops (the integration is off in [FakeAppSettings] by
+ *  default) — the harmless default for tests that don't exercise the mdPrayer integration. */
+fun disabledMdPrayerSync(weekCalculator: WeekCalculator = fixedWeekCalculator()) = SyncMdPrayerUseCase(
+    settings = FakeAppSettings(),
+    mdPrayer = NoopMdPrayerRepository(),
+    tasks = InMemoryTaskRepository(),
+    completeTask = CompleteTaskUseCase(InMemoryTaskRepository(), InMemoryPointsLedgerRepository()),
+    weekCalculator = weekCalculator,
 )
 
 /**
