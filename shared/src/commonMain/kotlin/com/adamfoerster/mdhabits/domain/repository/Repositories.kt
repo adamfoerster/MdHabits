@@ -48,8 +48,9 @@ interface TaskRepository {
     // Per-week state.
     fun observeInstances(weekId: String): Flow<List<TaskInstance>>
 
-    /** Whether the week's note exists yet — created by planning it (weekly review, onboarding)
-     *  or by completing a task in it. Drives the Home weekly-review call to action. */
+    /** Whether the week holds planned or completed work yet — put there by planning it (weekly
+     *  review, onboarding) or by completing a task in it. Drives the Home weekly-review call to
+     *  action. */
     fun observeWeekStarted(weekId: String): Flow<Boolean>
     suspend fun setPlanned(weekId: String, taskIds: List<String>)
     suspend fun setCompleted(taskId: String, weekId: String, completed: Boolean, on: LocalDate)

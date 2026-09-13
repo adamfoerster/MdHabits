@@ -15,6 +15,7 @@ import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.data.markdown.WeekNote
 import com.adamfoerster.mdhabits.domain.model.TaskInstance
 import com.adamfoerster.mdhabits.domain.model.WeeklyReview
+import com.adamfoerster.mdhabits.domain.model.completing
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.JsonPrimitive
@@ -119,7 +120,7 @@ class MarkdownCodecsTest {
             weekId = "2026-W27",
             instances = listOf(
                 TaskInstance("t-1", "2026-W27", planned = true),
-                TaskInstance("t-2", "2026-W27", planned = true, completed = true, completedOn = LocalDate(2026, 7, 1)),
+                TaskInstance("t-2", "2026-W27", planned = true).completing(true, LocalDate(2026, 7, 1)),
             ),
         )
         assertEquals(note, MarkdownCodecs.decodeWeekNote(MarkdownCodecs.encodeWeekNote(note)))

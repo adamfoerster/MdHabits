@@ -23,6 +23,7 @@ import com.adamfoerster.mdhabits.domain.repository.WeeklyReviewRepository
 import com.adamfoerster.mdhabits.domain.usecase.AchieveObjectiveUseCase
 import com.adamfoerster.mdhabits.domain.usecase.ApplyPenaltyUseCase
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
+import com.adamfoerster.mdhabits.domain.usecase.PenalizeMissedHabitsUseCase
 import com.adamfoerster.mdhabits.domain.usecase.RedeemRewardUseCase
 import com.adamfoerster.mdhabits.domain.usecase.SyncMdPrayerUseCase
 import com.adamfoerster.mdhabits.storage.VaultMigrator
@@ -68,11 +69,12 @@ val domainModule = module {
     factory { ApplyPenaltyUseCase(get()) }
     factory { RedeemRewardUseCase(get(), get()) }
     factory { SyncMdPrayerUseCase(get(), get(), get(), get(), get()) }
+    factory { PenalizeMissedHabitsUseCase(get(), get(), get()) }
 }
 
 val viewModelModule = module {
     viewModel { OnboardingViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-    viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { RedeemViewModel(get(), get(), get(), get()) }
     viewModel { RegisterViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }

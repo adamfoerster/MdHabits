@@ -100,6 +100,7 @@ fun EntityFormSheet(
                     ) {
                         val options = listOf(
                             strings.recurDaily to Recurrence.DAILY,
+                            strings.recurHabit to Recurrence.HABIT,
                             strings.recurWeekly to Recurrence.WEEKLY,
                             strings.recurDaysOfWeek to Recurrence.DAYS_OF_WEEK,
                             strings.recurAdhoc to Recurrence.ADHOC,
@@ -107,6 +108,13 @@ fun EntityFormSheet(
                         options.forEach { (label, option) ->
                             SelectChip(label = label, selected = recurrence == option) { recurrence = option }
                         }
+                    }
+                    if (recurrence == Recurrence.HABIT) {
+                        Text(
+                            strings.recurHabitHint,
+                            Modifier.padding(top = 7.dp),
+                            style = sansStyle(11.5.sp, Paper.muted),
+                        )
                     }
                     if (recurrence == Recurrence.DAYS_OF_WEEK) {
                         androidx.compose.foundation.layout.FlowRow(

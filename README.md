@@ -35,6 +35,19 @@ make them pass, update the release notes, bump the version) are documented in
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
 
+### 0.11.0 — Habits: the task type you lose points for missing
+
+- New **habit** frequency for tasks. A habit is due every day and its points work the other way
+  around: finishing it earns the points as usual, but a day that ends without it done *costs* them.
+  Home shows a habit's points as `±N`, and the task form explains the trade when you pick it.
+- On every app open MdHabits sweeps the **last four ISO weeks** (the current one included) and
+  charges every day a habit went undone. Today is never charged — you have until the end of the
+  day — and neither are days before the task became a habit, so adding one can't bill your past.
+  Each missed day is charged only once, and the charges show up in the week's report as slips.
+- Week notes now record **every day** a task was completed on (`dates` in each instance), not just
+  the last one, which is what lets the sweep tell a missed day from a done one. Notes written by
+  earlier versions keep working: their single completion stamp is read as that one day.
+
 ### 0.10.0 — mdPrayer integration
 
 - Optional integration with mdPrayer in Settings: point it at the same folder mdPrayer

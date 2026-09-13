@@ -6,12 +6,13 @@ import com.adamfoerster.mdhabits.domain.model.Task
 import kotlinx.datetime.isoDayNumber
 
 /**
- * The lowercase frequency label shown in task subtitles: "weekly", "daily", "ad-hoc", or the
- * chosen weekdays ("mon, wed, fri") for a days-of-week task.
+ * The lowercase frequency label shown in task subtitles: "weekly", "daily", "habit", "ad-hoc", or
+ * the chosen weekdays ("mon, wed, fri") for a days-of-week task.
  */
 fun Strings.frequencyLabel(task: Task): String = when (task.recurrence) {
     Recurrence.ADHOC -> recurAdhoc.lowercase()
     Recurrence.DAILY -> recurDaily.lowercase()
+    Recurrence.HABIT -> recurHabit.lowercase()
     Recurrence.WEEKLY -> recurWeekly.lowercase()
     Recurrence.DAYS_OF_WEEK -> task.daysOfWeek
         .sortedBy { it.isoDayNumber }

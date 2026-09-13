@@ -108,6 +108,7 @@ object MarkdownCodecs {
                 put("values", task.linkedValueIds.toJsonArray())
                 put("objectives", task.linkedObjectiveIds.toJsonArray())
                 put("active", JsonPrimitive(task.active))
+                task.habitSince?.let { put("habit_since", JsonPrimitive(it.toString())) }
             },
         ),
     )
@@ -123,6 +124,7 @@ object MarkdownCodecs {
             linkedValueIds = doc.stringList("values"),
             linkedObjectiveIds = doc.stringList("objectives"),
             active = doc.boolean("active") ?: true,
+            habitSince = doc.string("habit_since")?.toLocalDateOrNull(),
         )
     }
 
@@ -191,6 +193,8 @@ object MarkdownCodecs {
         val planned: Boolean = false,
         val completed: Boolean = false,
         val completedOn: String? = null,
+        /** Every day of the week the task was completed on; absent in notes written before 0.11.0. */
+        val dates: List<String> = emptyList(),
     )
 
     private const val LEDGER_HEADING = "## Ledger"
@@ -200,8 +204,14 @@ object MarkdownCodecs {
             fields = buildMap {
                 put("week", JsonPrimitive(note.weekId))
                 if (note.instances.isNotEmpty()) {
-                    val dtos = note.instances.map {
-                        InstanceDto(it.taskId, it.planned, it.completed, it.completedOn?.toString())
+                    val dtos = note.instances.map { instance ->
+                        InstanceDto(
+                            taskId = instance.taskId,
+                            planned = instance.planned,
+                            completed = instance.completed,
+                            completedOn = instance.completedOn?.toString(),
+                            dates = instance.completedDates.map { it.toString() },
+                        )
                     }
                     put(
                         "instances",
@@ -257,8 +267,18 @@ object MarkdownCodecs {
         val element = doc.fields["instances"] ?: return emptyList()
         return runCatching {
             markdownJson.decodeFromJsonElement(ListSerializer(InstanceDto.serializer()), element)
-        }.getOrNull().orEmpty().map {
-            TaskInstance(it.taskId, weekId, it.planned, it.completed, it.completedOn?.toLocalDateOrNull())
+        }.getOrNull().orEmpty().map { dto ->
+            val completedOn = dto.completedOn?.toLocalDateOrNull()
+            TaskInstance(
+                taskId = dto.taskId,
+                weekId = weekId,
+                planned = dto.planned,
+                completed = dto.completed,
+                completedOn = completedOn,
+                // Pre-0.11.0 notes have no per-day history: the single stamp is all there is.
+                completedDates = dto.dates.mapNotNull { it.toLocalDateOrNull() }
+                    .ifEmpty { listOfNotNull(completedOn) },
+            )
         }
     }
 

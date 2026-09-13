@@ -14,6 +14,7 @@ import com.adamfoerster.mdhabits.domain.repository.ThemeRepository
 import com.adamfoerster.mdhabits.domain.repository.ValueRepository
 import com.adamfoerster.mdhabits.domain.usecase.ApplyPenaltyUseCase
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
+import com.adamfoerster.mdhabits.domain.usecase.PenalizeMissedHabitsUseCase
 import com.adamfoerster.mdhabits.domain.usecase.SyncMdPrayerUseCase
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -34,7 +35,7 @@ data class HomeUiState(
     val range: WeekRange? = null,
     val themeName: String = "",
     val hasTheme: Boolean = false,
-    /** Tasks due today: daily tasks plus days-of-week tasks whose days include today. */
+    /** Tasks due today: daily tasks and habits, plus days-of-week tasks whose days include today. */
     val todayTasks: List<HomeTaskRow> = emptyList(),
     /** Weekly tasks, completed once per ISO week. */
     val weeklyTasks: List<HomeTaskRow> = emptyList(),
@@ -60,15 +61,20 @@ class HomeViewModel(
     private val applyPenalty: ApplyPenaltyUseCase,
     private val weekCalculator: WeekCalculator,
     private val syncMdPrayer: SyncMdPrayerUseCase,
+    private val penalizeMissedHabits: PenalizeMissedHabitsUseCase,
 ) : ViewModel() {
 
     val weekId: String = weekCalculator.weekId()
     private val year = weekCalculator.today().year
 
     init {
-        // The app has no background-sync infra, so opening Home is the sync trigger; the use case
-        // is a no-op early-return unless the integration is enabled and fully configured.
-        viewModelScope.launch { syncMdPrayer() }
+        // The app has no background-sync infra, so opening Home is the trigger for both sweeps.
+        // The mdPrayer sync is a no-op early-return unless the integration is enabled and fully
+        // configured; the habit sweep, unless a habit missed a day that has already ended.
+        viewModelScope.launch {
+            syncMdPrayer()
+            penalizeMissedHabits()
+        }
     }
 
     val state: StateFlow<HomeUiState> = combine(
@@ -88,10 +94,13 @@ class HomeViewModel(
         val objectiveNames = theme?.objectives?.associate { it.id to it.title }.orEmpty()
         val rows = tasks.map { task ->
             val instance = instanceByTask[task.id]
-            // Daily and days-of-week tasks are due again every scheduled day, so a completion
-            // only counts on the day it was made; weekly/ad-hoc completions hold for the week.
-            val perDay = task.recurrence == Recurrence.DAILY || task.recurrence == Recurrence.DAYS_OF_WEEK
-            val completed = instance?.completed == true && (!perDay || instance.completedOn == today)
+            // Daily, habit, and days-of-week tasks are due again every scheduled day, so a
+            // completion only counts on the day it was made; weekly/ad-hoc ones hold for the week.
+            val completed = if (task.isPerDay) {
+                today in instance?.completedDates.orEmpty()
+            } else {
+                instance?.completed == true
+            }
             HomeTaskRow(
                 task = task,
                 completed = completed,

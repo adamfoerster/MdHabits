@@ -6,7 +6,10 @@ import com.adamfoerster.mdhabits.core.platform.AppInfo
 import com.adamfoerster.mdhabits.data.repo.InMemoryPointsLedgerRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryTaskRepository
 import com.adamfoerster.mdhabits.domain.repository.MdPrayerRepository
+import com.adamfoerster.mdhabits.domain.repository.PointsLedgerRepository
+import com.adamfoerster.mdhabits.domain.repository.TaskRepository
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
+import com.adamfoerster.mdhabits.domain.usecase.PenalizeMissedHabitsUseCase
 import com.adamfoerster.mdhabits.domain.usecase.SyncMdPrayerUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -51,6 +54,14 @@ fun disabledMdPrayerSync(weekCalculator: WeekCalculator = fixedWeekCalculator())
     completeTask = CompleteTaskUseCase(InMemoryTaskRepository(), InMemoryPointsLedgerRepository()),
     weekCalculator = weekCalculator,
 )
+
+/** A [PenalizeMissedHabitsUseCase] pinned to the same fixed instant as [fixedWeekCalculator]; a
+ *  no-op for tests whose tasks hold no habit. */
+fun habitSweep(
+    tasks: TaskRepository,
+    ledger: PointsLedgerRepository,
+    iso: String = "2026-07-02T12:00:00Z",
+) = PenalizeMissedHabitsUseCase(tasks, ledger, fixedWeekCalculator(iso), fixedClock(iso))
 
 /**
  * Base class for ViewModel tests: installs an [UnconfinedTestDispatcher] as `Dispatchers.Main`

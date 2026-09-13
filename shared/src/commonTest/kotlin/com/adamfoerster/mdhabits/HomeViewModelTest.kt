@@ -38,6 +38,7 @@ class HomeViewModelTest : MainDispatcherTest() {
             applyPenalty = ApplyPenaltyUseCase(ledger),
             weekCalculator = wc,
             syncMdPrayer = disabledMdPrayerSync(wc),
+            penalizeMissedHabits = habitSweep(tasks, ledger),
         )
     }
 

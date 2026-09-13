@@ -10,6 +10,7 @@ import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.model.TaskInstance
 import com.adamfoerster.mdhabits.domain.model.WeeklyReport
 import com.adamfoerster.mdhabits.domain.model.WeeklyReview
+import com.adamfoerster.mdhabits.domain.model.completing
 import com.adamfoerster.mdhabits.domain.repository.PenaltyRepository
 import com.adamfoerster.mdhabits.domain.repository.PointsLedgerRepository
 import com.adamfoerster.mdhabits.domain.repository.RewardRepository
@@ -151,8 +152,13 @@ class MarkdownTaskRepository(
     override fun observeInstances(weekId: String): Flow<List<TaskInstance>> =
         weeks.observeNotes().map { it[weekId]?.instances.orEmpty() }
 
+    // Planned/completed work or a review is what starts a week, not the note existing: a habit
+    // charge (PenalizeMissedHabitsUseCase) writes ledger entries into weeks the user never opened,
+    // and that must not pass for a started week and hide Home's weekly-review call to action.
     override fun observeWeekStarted(weekId: String): Flow<Boolean> =
-        weeks.observeNotes().map { weekId in it }
+        weeks.observeNotes().map { notes ->
+            notes[weekId]?.let { it.instances.isNotEmpty() || it.review != null } == true
+        }
 
     override suspend fun setPlanned(weekId: String, taskIds: List<String>) = weeks.updateWeek(weekId) { note ->
         val existing = note.instances.associateBy { it.taskId }
@@ -168,10 +174,7 @@ class MarkdownTaskRepository(
     override suspend fun setCompleted(taskId: String, weekId: String, completed: Boolean, on: LocalDate) =
         weeks.updateWeek(weekId) { note ->
             val current = note.instances.find { it.taskId == taskId }
-            val updated = (current ?: TaskInstance(taskId, weekId)).copy(
-                completed = completed,
-                completedOn = if (completed) on else null,
-            )
+            val updated = (current ?: TaskInstance(taskId, weekId)).completing(completed, on)
             note.copy(instances = note.instances.filterNot { it.taskId == taskId } + updated)
         }
 
@@ -259,7 +262,7 @@ class MarkdownPointsLedgerRepository(private val weeks: MarkdownWeekStore) : Poi
             weekId = weekId,
             completedTasks = week.filter { it.source == PointsSource.TASK && it.delta > 0 },
             achievedObjectives = week.filter { it.source == PointsSource.OBJECTIVE && it.delta > 0 },
-            penalties = week.filter { it.source == PointsSource.PENALTY },
+            penalties = week.filter { it.source == PointsSource.PENALTY || it.source == PointsSource.HABIT_MISS },
             redemptions = week.filter { it.source == PointsSource.REWARD },
             earned = earned,
             spent = spent,

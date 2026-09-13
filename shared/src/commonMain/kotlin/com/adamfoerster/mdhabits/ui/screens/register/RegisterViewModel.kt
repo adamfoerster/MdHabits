@@ -11,6 +11,7 @@ import com.adamfoerster.mdhabits.domain.model.PersonalValue
 import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.Reward
 import com.adamfoerster.mdhabits.domain.model.Task
+import com.adamfoerster.mdhabits.domain.model.stampHabitSince
 import com.adamfoerster.mdhabits.domain.repository.PenaltyRepository
 import com.adamfoerster.mdhabits.domain.repository.RewardRepository
 import com.adamfoerster.mdhabits.domain.repository.TaskRepository
@@ -87,7 +88,7 @@ class RegisterViewModel(
                 daysOfWeek = daysOfWeek,
                 linkedValueIds = valueIds,
                 linkedObjectiveIds = objectiveIds,
-            ),
+            ).stampHabitSince(weekCalculator.today()),
         )
     }
 
@@ -136,7 +137,7 @@ class RegisterViewModel(
                 daysOfWeek = daysOfWeek,
                 linkedValueIds = valueIds,
                 linkedObjectiveIds = objectiveIds,
-            ),
+            ).stampHabitSince(weekCalculator.today()),
         )
     }
 

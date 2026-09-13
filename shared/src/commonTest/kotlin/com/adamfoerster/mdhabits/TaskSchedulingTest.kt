@@ -69,6 +69,7 @@ class HomeSectionsTest : MainDispatcherTest() {
         applyPenalty = ApplyPenaltyUseCase(ledger, fixedClock(iso)),
         weekCalculator = fixedWeekCalculator(iso),
         syncMdPrayer = disabledMdPrayerSync(fixedWeekCalculator(iso)),
+        penalizeMissedHabits = habitSweep(tasks, ledger, iso),
     )
 
     @Test

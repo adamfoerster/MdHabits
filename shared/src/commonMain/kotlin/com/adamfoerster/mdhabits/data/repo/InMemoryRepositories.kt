@@ -10,6 +10,7 @@ import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.model.TaskInstance
 import com.adamfoerster.mdhabits.domain.model.WeeklyReport
 import com.adamfoerster.mdhabits.domain.model.WeeklyReview
+import com.adamfoerster.mdhabits.domain.model.completing
 import com.adamfoerster.mdhabits.domain.repository.PenaltyRepository
 import com.adamfoerster.mdhabits.domain.repository.PointsLedgerRepository
 import com.adamfoerster.mdhabits.domain.repository.RewardRepository
@@ -89,10 +90,7 @@ class InMemoryTaskRepository : TaskRepository {
         startedWeeks.update { it + weekId }
         instances.update { list ->
             val current = list.find { it.taskId == taskId && it.weekId == weekId }
-            val updated = (current ?: TaskInstance(taskId, weekId)).copy(
-                completed = completed,
-                completedOn = if (completed) on else null,
-            )
+            val updated = (current ?: TaskInstance(taskId, weekId)).completing(completed, on)
             list.filterNot { it.taskId == taskId && it.weekId == weekId } + updated
         }
     }
@@ -139,7 +137,7 @@ class InMemoryPointsLedgerRepository : PointsLedgerRepository {
             weekId = weekId,
             completedTasks = week.filter { it.source == PointsSource.TASK && it.delta > 0 },
             achievedObjectives = week.filter { it.source == PointsSource.OBJECTIVE && it.delta > 0 },
-            penalties = week.filter { it.source == PointsSource.PENALTY },
+            penalties = week.filter { it.source == PointsSource.PENALTY || it.source == PointsSource.HABIT_MISS },
             redemptions = week.filter { it.source == PointsSource.REWARD },
             earned = earned,
             spent = spent,

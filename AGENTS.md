@@ -127,9 +127,14 @@ Keep the README release-notes heading, `versionName`, and `MARKETING_VERSION` id
   `weeks/<weekId>.md`, owned by the shared `MarkdownWeekStore` singleton — the task,
   review, and ledger repositories must all go through it, never write that file
   directly. The store also migrates pre-0.7.0 vaults (separate `ledger/` and `reviews/`
-  notes) on load. The Home weekly-review button shows only while the current week's
-  note doesn't exist; submitting the review writes the journal into the previous week's
-  note and creates the new one.
+  notes) on load. The Home weekly-review button shows only while the current week
+  holds no planned or completed task (a habit charge alone doesn't count as starting a week);
+  submitting the review writes the journal into the previous week's note and creates the new one.
+- The `HABIT` frequency is the one task type with negative points: `PenalizeMissedHabitsUseCase`
+  sweeps the last four ISO weeks on every Home open and appends a `HABIT_MISS` ledger entry
+  (refId `<taskId>@<date>`, which is what makes it idempotent) for each day that ended undone.
+  It relies on `TaskInstance.completedDates` — the per-day list in the week note — and never
+  charges today or days before the task's `habitSince` stamp.
 - `VaultFileSystem` implementations resolve the storage root from `AppSettings.vaultRef`
   on **every call**. Any flow that changes the vault (onboarding finish, Settings folder
   pick) must go through `storage/VaultMigrator` *before* writing notes — persisting the

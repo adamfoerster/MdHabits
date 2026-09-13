@@ -14,6 +14,7 @@ import com.adamfoerster.mdhabits.domain.model.PointsSource
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.model.TaskInstance
 import com.adamfoerster.mdhabits.domain.model.WeeklyReview
+import com.adamfoerster.mdhabits.domain.model.completing
 import com.adamfoerster.mdhabits.domain.usecase.ApplyPenaltyUseCase
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
 import com.adamfoerster.mdhabits.ui.screens.home.HomeViewModel
@@ -40,7 +41,7 @@ class WeekNoteCodecTest {
         val note = WeekNote(
             weekId = "2026-W27",
             instances = listOf(
-                TaskInstance("t-1", "2026-W27", planned = true, completed = true, completedOn = LocalDate(2026, 7, 1)),
+                TaskInstance("t-1", "2026-W27", planned = true).completing(true, LocalDate(2026, 7, 1)),
                 TaskInstance("t-2", "2026-W27", planned = true),
             ),
             review = WeeklyReview(
@@ -148,6 +149,7 @@ class WeekFileReviewFlowTest : MainDispatcherTest() {
             applyPenalty = ApplyPenaltyUseCase(ledger, fixedClock(iso)),
             weekCalculator = fixedWeekCalculator(iso),
             syncMdPrayer = disabledMdPrayerSync(fixedWeekCalculator(iso)),
+            penalizeMissedHabits = habitSweep(tasks, ledger, iso),
         )
         keepHot(vm.state)
 

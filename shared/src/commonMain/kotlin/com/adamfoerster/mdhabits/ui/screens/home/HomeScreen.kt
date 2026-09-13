@@ -35,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.adamfoerster.mdhabits.core.datetime.WeekRange
 import com.adamfoerster.mdhabits.core.i18n.LocalStrings
 import com.adamfoerster.mdhabits.core.i18n.Strings
+import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.ui.components.Chevron
 import com.adamfoerster.mdhabits.ui.components.GearIcon
 import com.adamfoerster.mdhabits.ui.components.GlyphPlate
@@ -295,8 +296,10 @@ private fun TaskRow(row: HomeTaskRow, strings: Strings, onToggle: (Boolean) -> U
             val subtitle = (row.linkedNames + strings.frequencyLabel(row.task)).joinToString(" · ")
             Text(subtitle, style = sansStyle(11.sp, Paper.faded))
         }
+        // A habit's points go both ways: earned when done, charged when the day ends undone.
+        val sign = if (row.task.recurrence == Recurrence.HABIT) "±" else "+"
         Text(
-            "+${row.task.points}",
+            "$sign${row.task.points}",
             style = handStyle(17.sp, if (done) Paper.donePoints else Paper.pointsTint),
         )
     }

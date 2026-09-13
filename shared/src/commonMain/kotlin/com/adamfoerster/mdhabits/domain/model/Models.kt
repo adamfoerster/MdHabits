@@ -26,6 +26,13 @@ enum class Recurrence {
 
     /** A habit due on the specific weekdays in [Task.daysOfWeek]. Completion counts per day. */
     DAYS_OF_WEEK,
+
+    /**
+     * A habit due every day whose points work the other way around: a day that ends without it
+     * being completed *costs* [Task.points] instead of earning them. The charge is applied by
+     * [com.adamfoerster.mdhabits.domain.usecase.PenalizeMissedHabitsUseCase].
+     */
+    HABIT,
 }
 
 /** The annual theme with exactly three [objectives] (the "exactly 3" rule is validated, not typed). */
@@ -72,13 +79,38 @@ data class Task(
     val linkedValueIds: List<String> = emptyList(),
     val linkedObjectiveIds: List<String> = emptyList(),
     val active: Boolean = true,
+    /**
+     * The day this task became a [Recurrence.HABIT]. Missed days are never charged before it, so
+     * adding a habit (or turning a task into one) can't bill the weeks the sweep looks back over.
+     * Stamped by [stampHabitSince]; null for every task that isn't a habit.
+     */
+    val habitSince: LocalDate? = null,
 ) {
     /** Whether the task belongs in a "today" list on the given weekday. */
     fun isDueOn(dayOfWeek: DayOfWeek): Boolean = when (recurrence) {
-        Recurrence.DAILY -> true
+        Recurrence.DAILY, Recurrence.HABIT -> true
         Recurrence.DAYS_OF_WEEK -> dayOfWeek in daysOfWeek
         Recurrence.WEEKLY, Recurrence.ADHOC -> false
     }
+
+    /**
+     * Whether completion counts per day rather than once per ISO week: these tasks are due again
+     * every scheduled day, so a completion only holds for the day it was made.
+     */
+    val isPerDay: Boolean
+        get() = recurrence == Recurrence.DAILY || recurrence == Recurrence.DAYS_OF_WEEK ||
+            recurrence == Recurrence.HABIT
+}
+
+/**
+ * The task with its [Task.habitSince] stamp in sync with its recurrence: one that just became a
+ * habit starts counting from [today], and one that stopped being a habit drops the stamp. Every
+ * write of a task from the UI goes through this, so a habit always knows its first chargeable day.
+ */
+fun Task.stampHabitSince(today: LocalDate): Task = when {
+    recurrence != Recurrence.HABIT -> if (habitSince == null) this else copy(habitSince = null)
+    habitSince == null -> copy(habitSince = today)
+    else -> this
 }
 
 /** Per-week completion state for a [Task], kept separate from the definition so history is preserved. */
@@ -88,6 +120,22 @@ data class TaskInstance(
     val planned: Boolean = false,
     val completed: Boolean = false,
     val completedOn: LocalDate? = null,
+    /**
+     * Every day of the week the task was completed on. A [Task.isPerDay] task is completed once
+     * per day, so the single [completedOn] stamp can't say which days of the week were done — and
+     * habits are charged exactly for the days that are missing here.
+     */
+    val completedDates: List<LocalDate> = emptyList(),
+)
+
+/**
+ * The instance after (un)completing its task on [on], keeping the per-day [TaskInstance.completedDates]
+ * history intact: un-completing drops only that day, never the rest of the week.
+ */
+fun TaskInstance.completing(completed: Boolean, on: LocalDate): TaskInstance = copy(
+    completed = completed,
+    completedOn = if (completed) on else null,
+    completedDates = if (completed) (completedDates + on).distinct().sorted() else completedDates - on,
 )
 
 /** A reward that costs [pointCost] points to redeem. */
@@ -98,8 +146,8 @@ data class Reward(
     val description: String = "",
 )
 
-/** Where a [PointsEvent] originated. */
-enum class PointsSource { TASK, OBJECTIVE, PENALTY, REWARD, ADJUSTMENT }
+/** Where a [PointsEvent] originated. [HABIT_MISS] is a day a [Recurrence.HABIT] task went undone. */
+enum class PointsSource { TASK, OBJECTIVE, PENALTY, REWARD, ADJUSTMENT, HABIT_MISS }
 
 /** An append-only ledger entry. The balance is the running sum of every [delta]. */
 data class PointsEvent(
@@ -128,6 +176,7 @@ data class WeeklyReport(
     val weekId: String,
     val completedTasks: List<PointsEvent>,
     val achievedObjectives: List<PointsEvent>,
+    /** Everything the week deducted as a slip: applied penalties and [PointsSource.HABIT_MISS] days. */
     val penalties: List<PointsEvent>,
     val redemptions: List<PointsEvent>,
     val earned: Int,

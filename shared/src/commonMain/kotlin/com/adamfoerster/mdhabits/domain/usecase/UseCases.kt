@@ -11,6 +11,7 @@ import com.adamfoerster.mdhabits.domain.model.PointsSource
 import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.Reward
 import com.adamfoerster.mdhabits.domain.model.Task
+import com.adamfoerster.mdhabits.domain.model.TaskInstance
 import com.adamfoerster.mdhabits.domain.repository.MdPrayerRepository
 import com.adamfoerster.mdhabits.domain.repository.PointsLedgerRepository
 import com.adamfoerster.mdhabits.domain.repository.RewardRepository
@@ -19,7 +20,9 @@ import com.adamfoerster.mdhabits.domain.repository.ThemeRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 
@@ -88,10 +91,9 @@ class ApplyPenaltyUseCase(
  * is idempotent — it never re-marks a day already reflected in [TaskRepository], so repeated calls
  * (every app open, or the manual "sync now") never double-credit the points ledger.
  *
- * Only the current week is checked: [com.adamfoerster.mdhabits.domain.model.TaskInstance] keeps a
- * single completed/completedOn pair per (task, week), so a per-day habit's completion is only ever
- * meaningful for *today*, and a per-week habit's for *this week* — there is no per-day history to
- * replay beyond that.
+ * Only the current week is checked, and for a per-day task only *today*: earlier days are already
+ * closed (their weekly report is written, and a habit's missed days have been charged by
+ * [PenalizeMissedHabitsUseCase]), so marking them now would credit points after the fact.
  */
 class SyncMdPrayerUseCase(
     private val settings: AppSettings,
@@ -112,9 +114,8 @@ class SyncMdPrayerUseCase(
         val completedDates = mdPrayer.completedDates(ref, range)
         val instance = tasks.observeInstances(weekId).first().find { it.taskId == taskId }
 
-        val perDay = task.recurrence == Recurrence.DAILY || task.recurrence == Recurrence.DAYS_OF_WEEK
-        val shouldComplete = if (perDay) {
-            today in completedDates && (instance?.completed != true || instance.completedOn != today)
+        val shouldComplete = if (task.isPerDay) {
+            today in completedDates && today !in instance?.completedDates.orEmpty()
         } else {
             instance?.completed != true && daysOf(range).any { it in completedDates }
         }
@@ -123,6 +124,76 @@ class SyncMdPrayerUseCase(
 
     private fun daysOf(range: WeekRange) =
         generateSequence(range.start) { it.plus(1, DateTimeUnit.DAY) }.takeWhile { it <= range.endInclusive }
+}
+
+/**
+ * Charges every day a [Recurrence.HABIT] task went uncompleted, looking back [weeksBack] ISO weeks
+ * (the current one included). A habit is the one task type whose points work backwards: the day
+ * ending without it done *costs* [Task.points] instead of earning them.
+ *
+ * The app has no background scheduler, so the sweep runs on app open (and, like the balance itself,
+ * it only ever derives from the ledger). It is idempotent — a (habit, day) miss is charged at most
+ * once, recognized by the [PointsSource.HABIT_MISS] entry's [missRefId] — and it never charges:
+ *
+ * - today, which isn't over yet (the user still has until the end of the day);
+ * - days before the habit's [Task.habitSince], so adding a habit can't bill the weeks before it;
+ * - days the habit was completed on, read from [TaskInstance.completedDates].
+ *
+ * Inactive habits are skipped: pausing a habit stops the charges from the day it is switched off.
+ */
+class PenalizeMissedHabitsUseCase(
+    private val tasks: TaskRepository,
+    private val ledger: PointsLedgerRepository,
+    private val weekCalculator: WeekCalculator,
+    private val clock: Clock = Clock.System,
+    /** How many ISO weeks back the sweep looks, counting the current one. */
+    private val weeksBack: Int = 4,
+) {
+    suspend operator fun invoke() {
+        val habits = tasks.observeTasks(activeOnly = true).first()
+            .filter { it.recurrence == Recurrence.HABIT }
+        if (habits.isEmpty()) return
+
+        val today = weekCalculator.today()
+        val thisMonday = weekCalculator.rangeOf(today).start
+        // Oldest week first, so the ledger keeps its chronological order.
+        for (weeksAgo in (weeksBack - 1) downTo 0) {
+            val monday = thisMonday.minus(weeksAgo * 7, DateTimeUnit.DAY)
+            val weekId = weekCalculator.weekId(monday)
+            val instances = tasks.observeInstances(weekId).first().associateBy { it.taskId }
+            val alreadyCharged = ledger.eventsForWeek(weekId)
+                .filter { it.source == PointsSource.HABIT_MISS }
+                .mapTo(mutableSetOf()) { it.refId }
+
+            for (habit in habits) {
+                val since = habit.habitSince
+                val completed = instances[habit.id]?.completedDates.orEmpty().toSet()
+                val missedDays = (0..6).map { monday.plus(it, DateTimeUnit.DAY) }
+                    // Today isn't over yet, and a habit only counts from the day it became one.
+                    .filter { it < today && (since == null || it >= since) && it !in completed }
+                for (day in missedDays) {
+                    val refId = missRefId(habit.id, day)
+                    if (refId in alreadyCharged) continue
+                    ledger.append(
+                        PointsEvent(
+                            id = newId("L"),
+                            timestamp = clock.now(),
+                            weekId = weekId,
+                            source = PointsSource.HABIT_MISS,
+                            refId = refId,
+                            label = "Hábito não cumprido: ${habit.title} ($day)",
+                            delta = -habit.points,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    companion object {
+        /** `<taskId>@<date>`: the miss is per day, so the day has to be part of what identifies it. */
+        fun missRefId(taskId: String, date: LocalDate): String = "$taskId@$date"
+    }
 }
 
 /** Result of attempting to redeem a reward. */
