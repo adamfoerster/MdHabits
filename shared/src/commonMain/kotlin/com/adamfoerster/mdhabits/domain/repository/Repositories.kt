@@ -69,6 +69,9 @@ interface PointsLedgerRepository {
     suspend fun append(event: PointsEvent)
     suspend fun eventsForWeek(weekId: String): List<PointsEvent>
     suspend fun weeklyReport(weekId: String): WeeklyReport
+
+    /** Every week the journal holds a record for, oldest first — the weeks a report exists for. */
+    fun observeRecordedWeekIds(): Flow<List<String>>
 }
 
 /** Read-only view into an mdPrayer vault folder, used by the optional daily-prayer sync. */

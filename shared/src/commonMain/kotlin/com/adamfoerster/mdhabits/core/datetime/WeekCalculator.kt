@@ -12,6 +12,19 @@ import kotlinx.datetime.toLocalDateTime
 /** A Monday..Sunday date range for a single ISO week. */
 data class WeekRange(val start: LocalDate, val endInclusive: LocalDate)
 
+/** One Monday..Sunday row of a [MonthGrid]. */
+data class WeekRow(
+    val weekId: String,
+    val weekNumber: Int,
+    /** The row's seven days, Monday first; the ones spilling out of the grid's month included. */
+    val days: List<LocalDate>,
+    /** Whether the journal holds a note for this week — only those can be opened as a report. */
+    val hasRecords: Boolean,
+)
+
+/** The Monday..Sunday rows touching one calendar month, for the week picker's calendar. */
+data class MonthGrid(val year: Int, val month: Int, val weeks: List<WeekRow>)
+
 /**
  * ISO-8601 week calculations. A week belongs to the year of its Thursday, and week 1 is the week
  * containing the first Thursday of that year. [clock] is injectable so week logic is unit-testable.
@@ -48,6 +61,32 @@ class WeekCalculator(
         val date = mondayOfWeekId(weekId) ?: return null
         return WeekRange(date, date.plus(6, DateTimeUnit.DAY))
     }
+
+    /**
+     * The calendar month [monthsAgo] months before the current one, as the Monday..Sunday rows that
+     * touch it — the week picker's calendar. Rows whose id is in [recordedWeekIds] are the ones the
+     * journal has a note for, and the only ones the picker lets through.
+     */
+    fun monthGrid(monthsAgo: Int, recordedWeekIds: Set<String> = emptySet()): MonthGrid {
+        val today = today()
+        val firstOfMonth = LocalDate(today.year, today.monthNumber, 1).minus(monthsAgo, DateTimeUnit.MONTH)
+        val lastOfMonth = firstOfMonth.plus(1, DateTimeUnit.MONTH).minus(1, DateTimeUnit.DAY)
+        val weeks = generateSequence(rangeOf(firstOfMonth).start) { it.plus(7, DateTimeUnit.DAY) }
+            .takeWhile { monday -> monday <= lastOfMonth }
+            .map { monday ->
+                WeekRow(
+                    weekId = weekId(monday),
+                    weekNumber = isoWeek(monday).second,
+                    days = (0..6).map { monday.plus(it, DateTimeUnit.DAY) },
+                    hasRecords = weekId(monday) in recordedWeekIds,
+                )
+            }
+        return MonthGrid(firstOfMonth.year, firstOfMonth.monthNumber, weeks.toList())
+    }
+
+    /** The ISO week number of [weekId] (e.g. 27 for "2026-W27"), or null when it isn't a week id. */
+    fun weekNumberOf(weekId: String): Int? =
+        rangeOfWeekId(weekId)?.let { isoWeek(it.start).second }
 
     /** The weekId of the week immediately before the one containing [date]. */
     fun previousWeekId(date: LocalDate = today()): String =

@@ -253,6 +253,9 @@ class MarkdownPointsLedgerRepository(private val weeks: MarkdownWeekStore) : Poi
     override suspend fun eventsForWeek(weekId: String): List<PointsEvent> =
         weeks.snapshot()[weekId]?.events.orEmpty()
 
+    override fun observeRecordedWeekIds(): Flow<List<String>> =
+        weeks.observeNotes().map { notes -> notes.keys.sorted() }
+
     override suspend fun weeklyReport(weekId: String): WeeklyReport {
         val notes = weeks.snapshot()
         val week = notes[weekId]?.events.orEmpty()
@@ -267,7 +270,8 @@ class MarkdownPointsLedgerRepository(private val weeks: MarkdownWeekStore) : Poi
             earned = earned,
             spent = spent,
             net = earned + spent,
-            endingBalance = allEvents(notes).sumOf { it.delta },
+            // The balance as the week closed, not today's: weekIds sort chronologically.
+            endingBalance = allEvents(notes.filterKeys { it <= weekId }).sumOf { it.delta },
         )
     }
 }

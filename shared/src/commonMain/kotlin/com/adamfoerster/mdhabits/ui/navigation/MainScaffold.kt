@@ -29,6 +29,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.adamfoerster.mdhabits.core.i18n.LocalStrings
 import com.adamfoerster.mdhabits.ui.components.GearIcon
 import com.adamfoerster.mdhabits.ui.components.GiftTabIcon
@@ -39,6 +40,7 @@ import com.adamfoerster.mdhabits.ui.components.sansStyle
 import com.adamfoerster.mdhabits.ui.screens.home.HomeScreen
 import com.adamfoerster.mdhabits.ui.screens.redeem.RedeemScreen
 import com.adamfoerster.mdhabits.ui.screens.register.RegisterScreen
+import com.adamfoerster.mdhabits.ui.screens.report.WeekReportScreen
 import com.adamfoerster.mdhabits.ui.screens.review.ReviewScreen
 import com.adamfoerster.mdhabits.ui.screens.settings.SettingsScreen
 import com.adamfoerster.mdhabits.ui.screens.theme.ThemeScreen
@@ -86,9 +88,10 @@ fun MainScaffold() {
             ) {
                 tabs.forEach { tab ->
                     val selected = current?.hierarchyHasRoute(tab.kClass) == true ||
-                        // Theme and Review live on the Home stack; keep Home lit for them.
+                        // Theme, Review and past-week reports live on the Home stack; keep Home lit.
                         (tab.kClass == HomeTab::class && current?.hierarchy?.any {
-                            it.hasRoute(ThemeScreenRoute::class) || it.hasRoute(ReviewRoute::class)
+                            it.hasRoute(ThemeScreenRoute::class) || it.hasRoute(ReviewRoute::class) ||
+                                it.hasRoute(WeekReportRoute::class)
                         } == true)
                     val color = if (selected) Paper.accent else Paper.muted
                     Column(
@@ -125,6 +128,7 @@ fun MainScaffold() {
                     onOpenSettings = { switchTab(SettingsTab) },
                     onOpenRedeem = { switchTab(RedeemTab) },
                     onOpenReview = { navController.navigate(ReviewRoute("current")) },
+                    onOpenWeekReport = { weekId -> navController.navigate(WeekReportRoute(weekId)) },
                 )
             }
             composable<RedeemTab> { RedeemScreen() }
@@ -134,6 +138,12 @@ fun MainScaffold() {
             }
             composable<ThemeScreenRoute> { ThemeScreen(onBack = { navController.popBackStack() }) }
             composable<ReviewRoute> { ReviewScreen(onBack = { navController.popBackStack() }) }
+            composable<WeekReportRoute> { entry ->
+                WeekReportScreen(
+                    weekId = entry.toRoute<WeekReportRoute>().weekId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
     }
 }

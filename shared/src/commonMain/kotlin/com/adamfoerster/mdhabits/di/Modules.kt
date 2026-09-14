@@ -31,6 +31,7 @@ import com.adamfoerster.mdhabits.ui.onboarding.OnboardingViewModel
 import com.adamfoerster.mdhabits.ui.screens.home.HomeViewModel
 import com.adamfoerster.mdhabits.ui.screens.redeem.RedeemViewModel
 import com.adamfoerster.mdhabits.ui.screens.register.RegisterViewModel
+import com.adamfoerster.mdhabits.ui.screens.report.WeekReportViewModel
 import com.adamfoerster.mdhabits.ui.screens.review.ReviewViewModel
 import com.adamfoerster.mdhabits.ui.screens.settings.SettingsViewModel
 import com.adamfoerster.mdhabits.ui.screens.theme.ThemeViewModel
@@ -80,6 +81,7 @@ val viewModelModule = module {
     viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { ThemeViewModel(get(), get(), get()) }
     viewModel { ReviewViewModel(get(), get(), get(), get(), get()) }
+    viewModel { WeekReportViewModel(get(), get(), get()) }
 }
 
 /** Starts Koin with all modules. Call once from each platform entry point after platform setup. */

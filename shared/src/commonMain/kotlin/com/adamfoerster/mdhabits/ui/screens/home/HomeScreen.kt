@@ -42,6 +42,7 @@ import com.adamfoerster.mdhabits.ui.components.GlyphPlate
 import com.adamfoerster.mdhabits.ui.components.HandCheckbox
 import com.adamfoerster.mdhabits.ui.components.PaperToast
 import com.adamfoerster.mdhabits.ui.components.PenaltyListSheet
+import com.adamfoerster.mdhabits.ui.components.WeekPickerSheet
 import com.adamfoerster.mdhabits.ui.components.dashedBorder
 import com.adamfoerster.mdhabits.ui.components.frequencyLabel
 import com.adamfoerster.mdhabits.ui.components.handStyle
@@ -58,12 +59,16 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onOpenRedeem: () -> Unit,
     onOpenReview: () -> Unit,
+    onOpenWeekReport: (String) -> Unit,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val strings = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val penalties by viewModel.penalties.collectAsStateWithLifecycle()
+    val recordedWeeks by viewModel.recordedWeekIds.collectAsStateWithLifecycle()
     var showPenalties by remember { mutableStateOf(false) }
+    var showWeeks by remember { mutableStateOf(false) }
+    var monthsAgo by remember { mutableStateOf(0) }
     val toast = rememberToastState()
 
     Box(Modifier.fillMaxSize().background(Paper.bg)) {
@@ -77,7 +82,16 @@ fun HomeScreen(
                     drawLine(Paper.marginRed, Offset(x, 0f), Offset(x, size.height), 1.5.dp.toPx())
                 },
         ) {
-            Header(state, strings, onOpenTheme, onOpenSettings)
+            Header(
+                state = state,
+                strings = strings,
+                onOpenTheme = onOpenTheme,
+                onOpenSettings = onOpenSettings,
+                onOpenWeeks = {
+                    monthsAgo = 0
+                    showWeeks = true
+                },
+            )
 
             // Penalty / redeem actions.
             Row(
@@ -166,6 +180,22 @@ fun HomeScreen(
         PaperToast(toast)
     }
 
+    if (showWeeks) {
+        // Recomputed whenever the month or the recorded weeks change; the picker itself is dumb.
+        val month = remember(monthsAgo, recordedWeeks) { viewModel.weekPicker(monthsAgo) }
+        WeekPickerSheet(
+            grid = month.grid,
+            canGoBack = month.canGoBack,
+            canGoForward = month.canGoForward,
+            onMonthChange = { delta -> monthsAgo = (monthsAgo + delta).coerceAtLeast(0) },
+            onSelectWeek = { weekId ->
+                showWeeks = false
+                onOpenWeekReport(weekId)
+            },
+            onDismiss = { showWeeks = false },
+        )
+    }
+
     if (showPenalties) {
         PenaltyListSheet(
             penalties = penalties,
@@ -196,6 +226,7 @@ private fun Header(
     strings: Strings,
     onOpenTheme: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenWeeks: () -> Unit,
 ) {
     Column(
         Modifier
@@ -211,12 +242,14 @@ private fun Header(
             .padding(start = 46.dp, end = 20.dp, top = 6.dp, bottom = 14.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-            // Hand-taped week badge, slightly rotated like in the design.
+            // Hand-taped week badge, slightly rotated like in the design; it is also the way
+            // into the calendar of past weeks.
             Column(
                 Modifier
                     .rotate(-1.5f)
                     .dashedBorder(color = Paper.badgeBorder, radius = 6)
                     .background(Paper.card, RoundedCornerShape(6.dp))
+                    .paperClick(onClick = onOpenWeeks)
                     .padding(horizontal = 12.dp, vertical = 6.dp),
             ) {
                 Text(
@@ -226,6 +259,12 @@ private fun Header(
                 state.range?.let {
                     Text(formatRange(strings, it), style = sansStyle(11.5.sp, Paper.muted, FontWeight.Medium))
                 }
+                Text(
+                    strings.seeWeeks,
+                    Modifier.padding(top = 2.dp),
+                    style = sansStyle(10.5.sp, Paper.accent, FontWeight.SemiBold)
+                        .copy(textDecoration = TextDecoration.Underline),
+                )
             }
             Spacer(Modifier.weight(1f))
             Box(

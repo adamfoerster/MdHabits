@@ -2,6 +2,7 @@ package com.adamfoerster.mdhabits.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.adamfoerster.mdhabits.core.datetime.MonthGrid
 import com.adamfoerster.mdhabits.core.datetime.WeekCalculator
 import com.adamfoerster.mdhabits.core.datetime.WeekRange
 import com.adamfoerster.mdhabits.domain.model.Penalty
@@ -28,6 +29,13 @@ data class HomeTaskRow(
     val planned: Boolean,
     /** Names of the values/objectives this task is linked to, for the row subtitle. */
     val linkedNames: List<String> = emptyList(),
+)
+
+/** One month of the week picker: its calendar plus which way the month arrows can still go. */
+data class WeekPickerMonth(
+    val grid: MonthGrid,
+    val canGoBack: Boolean,
+    val canGoForward: Boolean,
 )
 
 data class HomeUiState(
@@ -126,6 +134,26 @@ class HomeViewModel(
 
     val penalties: StateFlow<List<Penalty>> = penaltyRepository.observePenalties()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** The weeks the journal has a note for — the only ones the week picker lets through. */
+    val recordedWeekIds: StateFlow<List<String>> = ledgerRepository.observeRecordedWeekIds()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * The picker's calendar for the month [monthsAgo] months back. Forward stops at the current
+     * month, back at the oldest recorded week, so the arrows never wander into empty calendars.
+     */
+    fun weekPicker(monthsAgo: Int): WeekPickerMonth {
+        val recorded = recordedWeekIds.value.toSet()
+        val grid = weekCalculator.monthGrid(monthsAgo, recorded)
+        val firstShownWeekId = grid.weeks.firstOrNull()?.weekId
+        return WeekPickerMonth(
+            grid = grid,
+            // weekIds sort chronologically, so "older than the first row" is a string compare.
+            canGoBack = firstShownWeekId != null && recorded.any { it < firstShownWeekId },
+            canGoForward = monthsAgo > 0,
+        )
+    }
 
     fun onToggleComplete(task: Task, completed: Boolean) = viewModelScope.launch {
         completeTask(task, weekId, completed)

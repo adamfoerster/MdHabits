@@ -23,3 +23,6 @@ import kotlinx.serialization.Serializable
 // Secondary destinations.
 @Serializable data object ThemeScreenRoute
 @Serializable data class ReviewRoute(val weekId: String)
+
+/** Read-only report of a past week, opened from Home's week badge. */
+@Serializable data class WeekReportRoute(val weekId: String)

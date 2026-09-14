@@ -35,6 +35,17 @@ make them pass, update the release notes, bump the version) are documented in
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
 
+### 0.12.0 — Reports of past weeks
+
+- Home's week badge now opens a **calendar of past weeks**. It shows one month at a time, a row per
+  ISO week, and only the weeks your journal has records for can be opened — the rest are there for
+  orientation. The month arrows stop at the current month and at your oldest recorded week.
+- Picking a week opens its **report, read-only**: the week's stats, everything the ledger recorded
+  (tasks completed, objectives, slips, redemptions) and the journal written in that week's review.
+  A closed week is history — nothing on that screen can be edited.
+- The report's **balance is now the one the week closed with** instead of today's balance, so a past
+  week reads as it was. This also fixes the figure shown in the weekly review.
+
 ### 0.11.0 — Habits: the task type you lose points for missing
 
 - New **habit** frequency for tasks. A habit is due every day and its points work the other way

@@ -128,6 +128,9 @@ class InMemoryPointsLedgerRepository : PointsLedgerRepository {
     override suspend fun eventsForWeek(weekId: String): List<PointsEvent> =
         events.value.filter { it.weekId == weekId }
 
+    override fun observeRecordedWeekIds(): Flow<List<String>> =
+        events.map { list -> list.map { it.weekId }.distinct().sorted() }
+
     override suspend fun weeklyReport(weekId: String): WeeklyReport {
         val all = events.value
         val week = all.filter { it.weekId == weekId }
@@ -142,7 +145,8 @@ class InMemoryPointsLedgerRepository : PointsLedgerRepository {
             earned = earned,
             spent = spent,
             net = earned + spent,
-            endingBalance = all.sumOf { it.delta },
+            // The balance as the week closed, not today's: weekIds sort chronologically.
+            endingBalance = all.filter { it.weekId <= weekId }.sumOf { it.delta },
         )
     }
 }

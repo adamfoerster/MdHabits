@@ -135,6 +135,10 @@ Keep the README release-notes heading, `versionName`, and `MARKETING_VERSION` id
   (refId `<taskId>@<date>`, which is what makes it idempotent) for each day that ended undone.
   It relies on `TaskInstance.completedDates` — the per-day list in the week note — and never
   charges today or days before the task's `habitSince` stamp.
+- Past weeks are read-only: Home's week badge opens a calendar (`WeekPickerSheet`, built from
+  `WeekCalculator.monthGrid`) listing only weeks `PointsLedgerRepository.observeRecordedWeekIds`
+  reports, and the week it opens (`WeekReportScreen`) only reads the ledger and that week's review.
+  Editing stays on Home, which is always the current week.
 - `VaultFileSystem` implementations resolve the storage root from `AppSettings.vaultRef`
   on **every call**. Any flow that changes the vault (onboarding finish, Settings folder
   pick) must go through `storage/VaultMigrator` *before* writing notes — persisting the
