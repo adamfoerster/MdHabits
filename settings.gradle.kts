@@ -15,6 +15,12 @@ pluginManagement {
     }
 }
 
+plugins {
+    // Lets Gradle auto-provision the daemon/toolchain JDK (gradle/gradle-daemon-jvm.properties)
+    // and lets the IDE regenerate that file via the :updateDaemonJvm task.
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
 dependencyResolutionManagement {
     repositories {
         google {
