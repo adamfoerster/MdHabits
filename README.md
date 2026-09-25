@@ -35,6 +35,12 @@ make them pass, update the release notes, bump the version) are documented in
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
 
+### 0.12.1 — New app icon
+
+- MdHabits has its **own icon**: a check mark inside a circle, on the app's paper tones. On iOS it
+  follows the Home Screen style: a dark version in dark mode and a tinted one when icons are tinted.
+  On Android it is an adaptive icon, and on Android 13+ it also supports themed icons.
+
 ### 0.12.0 — Reports of past weeks
 
 - Home's week badge now opens a **calendar of past weeks**. It shows one month at a time, a row per

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="1024" height="1024">
+  <title>MdHabits</title>
+  <rect width="120" height="120" fill="#1C1712"/>
+  <rect x="10" y="10" width="100" height="100" fill="none" stroke="#3A322A" stroke-width="1.2"/>
+  <circle cx="60" cy="60" r="32" fill="none" stroke="#F0E7D8" stroke-width="6"/>
+  <path d="M45 61 L55 71 L76 49" fill="none" stroke="#C99B57" stroke-width="8" stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>
