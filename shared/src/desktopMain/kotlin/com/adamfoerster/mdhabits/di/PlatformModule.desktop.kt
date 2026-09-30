@@ -1,0 +1,19 @@
+package com.adamfoerster.mdhabits.di
+
+import com.adamfoerster.mdhabits.core.platform.AppInfo
+import com.adamfoerster.mdhabits.core.settings.AppSettings
+import com.adamfoerster.mdhabits.platform.DesktopAppInfo
+import com.adamfoerster.mdhabits.platform.DesktopAppSettings
+import com.adamfoerster.mdhabits.platform.DesktopVaultFileSystem
+import com.adamfoerster.mdhabits.platform.DesktopVaultPicker
+import com.adamfoerster.mdhabits.storage.VaultFileSystem
+import com.adamfoerster.mdhabits.storage.VaultPicker
+import org.koin.core.module.Module
+import org.koin.dsl.module
+
+actual fun platformModule(): Module = module {
+    single<AppSettings> { DesktopAppSettings() }
+    single<AppInfo> { DesktopAppInfo() }
+    single<VaultPicker> { DesktopVaultPicker() }
+    single<VaultFileSystem> { DesktopVaultFileSystem(get()) }
+}

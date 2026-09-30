@@ -19,6 +19,8 @@ kotlin {
         }
     }
     
+    jvm("desktop")
+
     androidLibrary {
        namespace = "com.adamfoerster.mdhabits.shared"
        compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -39,6 +41,11 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.kotlinx.coroutines.android)
+        }
+        val desktopMain by getting {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.swing)
+            }
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

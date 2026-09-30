@@ -28,8 +28,8 @@ android {
         applicationId = "com.adamfoerster.mdhabits"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 15
-        versionName = "0.12.1"
+        versionCode = 16
+        versionName = "0.13.0"
     }
     packaging {
         resources {

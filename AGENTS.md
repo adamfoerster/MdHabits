@@ -5,7 +5,7 @@ making changes.
 
 ## What this project is
 
-MdHabits is a Kotlin Multiplatform habit journal targeting **Android and iOS**, with a
+MdHabits is a Kotlin Multiplatform habit journal targeting **Android, iOS and Desktop (JVM)**, with a
 shared Compose Multiplatform UI. Its concept: one year, one theme, three objectives;
 completing habits earns points that are spent on rewards. Data is meant to live as
 Markdown notes in a user-chosen folder, so the points balance is always **derived** from
@@ -19,6 +19,8 @@ MdHabits/
 │   └── build.gradle.kts         ← Android versionCode / versionName live here
 ├── iosApp/                      iOS entry point (SwiftUI shell hosting Compose)
 │   └── iosApp.xcodeproj/        ← iOS MARKETING_VERSION / CURRENT_PROJECT_VERSION live here
+├── desktopApp/                  Desktop entry point (Compose Desktop `main`, packaging)
+│   └── build.gradle.kts         ← Desktop `appVersion` lives here
 ├── shared/                      All shared code (logic + Compose UI)
 │   └── src/
 │       ├── commonMain/kotlin/com/adamfoerster/mdhabits/
@@ -39,6 +41,8 @@ MdHabits/
 │       ├── androidMain/         Android actuals (platformModule, settings, locale)
 │       ├── iosMain/             iOS actuals (MainViewController, platformModule, settings, locale)
 │       ├── commonTest/          Shared unit tests (run on every target)
+│       ├── desktopMain/         Desktop actuals (platformModule, Preferences settings, file vault, Swing picker)
+│       ├── desktopTest/         Desktop-target tests (also runs commonTest on the JVM)
 │       ├── androidHostTest/     JVM-hosted tests
 │       └── iosTest/             iOS-target tests
 ├── gradle/libs.versions.toml    Version catalog (dependency + SDK versions)
@@ -68,10 +72,12 @@ Do all of the following, in order, for any change to app behavior:
    testing `domain`/`core` and ViewModel logic over UI.
 2. **Make the tests pass.** Run and confirm green:
    - `./gradlew :shared:testAndroidHostTest`
-   - `./gradlew :shared:iosSimulatorArm64Test` (when touching shared or iOS code)
-   Also confirm it still compiles for both platforms:
+   - `./gradlew :shared:desktopTest`
+   - `./gradlew :shared:iosSimulatorArm64Test` (when touching shared or iOS code; needs macOS)
+   Also confirm it still compiles for all platforms:
    - `./gradlew :shared:assembleAndroidMain`
-   - `./gradlew :shared:compileKotlinIosSimulatorArm64`
+   - `./gradlew :desktopApp:compileKotlin`
+   - `./gradlew :shared:compileKotlinIosSimulatorArm64` (needs macOS)
    Do **not** mark work complete with failing or skipped tests.
 3. **Update the release notes** in [README.md](./README.md). Add a bullet under the
    current unreleased version, or open a new version section (newest first) describing
@@ -97,7 +103,10 @@ Update **both** platforms:
   - `MARKETING_VERSION` → the new semver string (matches Android `versionName`).
   - `CURRENT_PROJECT_VERSION` → increment by 1 (matches Android `versionCode`).
 
-Keep the README release-notes heading, `versionName`, and `MARKETING_VERSION` identical.
+- **Desktop** — `desktopApp/build.gradle.kts`: `appVersion` → the new semver string.
+
+Keep the README release-notes heading, `versionName`, `MARKETING_VERSION`, and desktop
+`appVersion` identical.
 
 ## Build & run reference
 
@@ -105,6 +114,8 @@ Keep the README release-notes heading, `versionName`, and `MARKETING_VERSION` id
 | --- | --- |
 | Android app | `./gradlew :androidApp:assembleDebug` |
 | Shared framework (Android) | `./gradlew :shared:assembleAndroidMain` |
+| Desktop app | `./gradlew :desktopApp:run` |
+| Desktop tests (JVM) | `./gradlew :shared:desktopTest` |
 | iOS compile check | `./gradlew :shared:compileKotlinIosSimulatorArm64` |
 | Shared tests (JVM host) | `./gradlew :shared:testAndroidHostTest` |
 | iOS simulator tests | `./gradlew :shared:iosSimulatorArm64Test` |

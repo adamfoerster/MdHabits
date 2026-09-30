@@ -1,6 +1,6 @@
 # MdHabits
 
-A Kotlin Multiplatform (Android + iOS) habit journal. One year, one theme, three
+A Kotlin Multiplatform (Android + iOS + Desktop) habit journal. One year, one theme, three
 objectives — every habit you complete earns points you trade for rewards. The UI is
 built with Compose Multiplatform and follows a warm "paper journal" design language.
 
@@ -18,11 +18,13 @@ an Obsidian vault), so your data stays yours and remains editable outside the ap
 ## Running the apps
 
 - **Android:** `./gradlew :androidApp:assembleDebug` (or run the `androidApp` config in your IDE)
+- **Desktop:** `./gradlew :desktopApp:run` (package with `./gradlew :desktopApp:packageDistributionForCurrentOS`)
 - **iOS:** open [`/iosApp`](./iosApp) in Xcode and run, or `./gradlew :shared:assembleAndroidMain` to build the shared framework.
 
 ## Running tests
 
 - **Shared logic (JVM/Android host):** `./gradlew :shared:testAndroidHostTest`
+- **Desktop (JVM):** `./gradlew :shared:desktopTest`
 - **iOS simulator:** `./gradlew :shared:iosSimulatorArm64Test`
 
 ## Contributing
@@ -34,6 +36,12 @@ make them pass, update the release notes, bump the version) are documented in
 ## Release notes
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
+
+### 0.13.0 — Desktop app
+
+- MdHabits now runs on the **desktop** (Windows, macOS and Linux) with the same UI and features as
+  the phone apps. Your vault is any folder you choose with the system folder dialog, and until you
+  pick one notes are kept in `~/.mdhabits/vault`. Run it with `./gradlew :desktopApp:run`.
 
 ### 0.12.1 — New app icon
 
