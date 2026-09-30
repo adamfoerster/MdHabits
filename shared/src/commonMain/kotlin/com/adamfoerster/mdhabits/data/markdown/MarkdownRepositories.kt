@@ -160,6 +160,11 @@ class MarkdownTaskRepository(
             notes[weekId]?.let { it.instances.isNotEmpty() || it.review != null } == true
         }
 
+    override fun observeCompletedTaskIds(): Flow<Set<String>> =
+        weeks.observeNotes().map { notes ->
+            notes.values.flatMap { it.instances }.filter { it.completed }.mapTo(mutableSetOf()) { it.taskId }
+        }
+
     override suspend fun setPlanned(weekId: String, taskIds: List<String>) = weeks.updateWeek(weekId) { note ->
         val existing = note.instances.associateBy { it.taskId }
         val updated = taskIds.map { id ->

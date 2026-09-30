@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.adamfoerster.mdhabits.core.datetime.WeekCalculator
 import com.adamfoerster.mdhabits.core.datetime.WeekRange
+import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.model.WeeklyReport
 import com.adamfoerster.mdhabits.domain.model.WeeklyReview
@@ -30,6 +31,10 @@ data class ReviewUiState(
     val report: WeeklyReport? = null,
     val commitIds: Set<String> = emptySet(),
 )
+
+/** An ad-hoc task that was already completed, in any week — it never comes back to plan. */
+private fun Task.isFinishedAdhoc(everCompleted: Set<String>) =
+    recurrence == Recurrence.ADHOC && id in everCompleted
 
 class ReviewViewModel(
     private val taskRepository: TaskRepository,
@@ -61,15 +66,18 @@ class ReviewViewModel(
     val proximity: StateFlow<Int> = _proximity.asStateFlow()
 
     val state: StateFlow<ReviewUiState> = combine(
-        taskRepository.observeTasks(activeOnly = true),
-        taskRepository.observeInstances(reviewWeekId),
+        combine(
+            taskRepository.observeTasks(activeOnly = true),
+            taskRepository.observeInstances(reviewWeekId),
+            taskRepository.observeCompletedTaskIds(),
+        ) { tasks, instances, everCompleted -> Triple(tasks, instances, everCompleted) },
         step,
         commitIds,
         report,
-    ) { tasks, instances, currentStep, commits, currentReport ->
+    ) { (tasks, instances, everCompleted), currentStep, commits, currentReport ->
         ReviewUiState(
             step = currentStep,
-            tasks = tasks,
+            tasks = tasks.filterNot { it.isFinishedAdhoc(everCompleted) },
             completedCount = instances.count { it.completed },
             report = currentReport,
             commitIds = commits,
@@ -81,7 +89,8 @@ class ReviewViewModel(
         // Pre-select every task as a commitment for the new week; the user unchecks what's out.
         viewModelScope.launch {
             val tasks = taskRepository.observeTasks(activeOnly = true).first()
-            commitIds.value = tasks.map { it.id }.toSet()
+            val everCompleted = taskRepository.observeCompletedTaskIds().first()
+            commitIds.value = tasks.filterNot { it.isFinishedAdhoc(everCompleted) }.map { it.id }.toSet()
         }
         // Restore a draft review if one exists.
         viewModelScope.launch {

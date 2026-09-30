@@ -39,6 +39,13 @@ class CompleteTaskUseCase(
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) {
     suspend operator fun invoke(task: Task, weekId: String, nowCompleted: Boolean) {
+        // An ad-hoc task is done once for good: a second check-off (say, from a stale list) would
+        // credit its points again.
+        if (nowCompleted && task.recurrence == Recurrence.ADHOC &&
+            task.id in tasks.observeCompletedTaskIds().first()
+        ) {
+            return
+        }
         val now = clock.now()
         val today = now.toLocalDateTime(timeZone).date
         tasks.setCompleted(task.id, weekId, nowCompleted, today)

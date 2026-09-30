@@ -71,6 +71,9 @@ class InMemoryTaskRepository : TaskRepository {
     override fun observeWeekStarted(weekId: String): Flow<Boolean> =
         startedWeeks.map { weekId in it }
 
+    override fun observeCompletedTaskIds(): Flow<Set<String>> =
+        instances.map { list -> list.filter { it.completed }.mapTo(mutableSetOf()) { it.taskId } }
+
     override suspend fun setPlanned(weekId: String, taskIds: List<String>) {
         startedWeeks.update { it + weekId }
         instances.update { list ->

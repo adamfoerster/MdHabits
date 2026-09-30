@@ -52,6 +52,9 @@ interface TaskRepository {
      *  review, onboarding) or by completing a task in it. Drives the Home weekly-review call to
      *  action. */
     fun observeWeekStarted(weekId: String): Flow<Boolean>
+
+    /** Ids of the tasks completed in any week — what keeps a finished ad-hoc task off every later week. */
+    fun observeCompletedTaskIds(): Flow<Set<String>>
     suspend fun setPlanned(weekId: String, taskIds: List<String>)
     suspend fun setCompleted(taskId: String, weekId: String, completed: Boolean, on: LocalDate)
 }

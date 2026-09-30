@@ -6,6 +6,7 @@ import com.adamfoerster.mdhabits.data.repo.InMemoryThemeRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryWeeklyReviewRepository
 import com.adamfoerster.mdhabits.domain.model.AnnualTheme
 import com.adamfoerster.mdhabits.domain.model.Objective
+import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
 import com.adamfoerster.mdhabits.ui.screens.review.ReviewViewModel
@@ -91,5 +92,24 @@ class ReviewViewModelTest : MainDispatcherTest() {
             .toSet()
         assertEquals(setOf("t1"), planned)
         assertTrue(tasks.observeWeekStarted(vm.planWeekId).first())
+    }
+
+    @Test
+    fun finishedAdhocTasksAreNotOfferedForPlanning() = runTest {
+        val tasks = InMemoryTaskRepository()
+        val ledger = InMemoryPointsLedgerRepository()
+        val wc = fixedWeekCalculator()
+        val done = Task("t1", "Fix bike", points = 10, recurrence = Recurrence.ADHOC)
+        tasks.upsert(done)
+        tasks.upsert(Task("t2", "Pay rent", points = 5, recurrence = Recurrence.ADHOC))
+        CompleteTaskUseCase(tasks, ledger)(done, wc.previousWeekId(), nowCompleted = true)
+
+        val vm = ReviewViewModel(
+            tasks, ledger, InMemoryWeeklyReviewRepository(), InMemoryThemeRepository(), wc,
+        )
+        keepHot(vm.state)
+
+        assertEquals(listOf("t2"), vm.state.value.tasks.map { it.id })
+        assertEquals(setOf("t2"), vm.state.value.commitIds)
     }
 }

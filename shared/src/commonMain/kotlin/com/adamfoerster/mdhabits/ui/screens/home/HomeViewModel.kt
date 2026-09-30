@@ -8,6 +8,7 @@ import com.adamfoerster.mdhabits.core.datetime.WeekRange
 import com.adamfoerster.mdhabits.domain.model.Penalty
 import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.Task
+import com.adamfoerster.mdhabits.domain.model.TaskInstance
 import com.adamfoerster.mdhabits.domain.repository.PenaltyRepository
 import com.adamfoerster.mdhabits.domain.repository.PointsLedgerRepository
 import com.adamfoerster.mdhabits.domain.repository.TaskRepository
@@ -36,6 +37,13 @@ data class WeekPickerMonth(
     val grid: MonthGrid,
     val canGoBack: Boolean,
     val canGoForward: Boolean,
+)
+
+private data class HomeSources(
+    val tasks: List<Task>,
+    val instances: List<TaskInstance>,
+    val weekStarted: Boolean,
+    val everCompleted: Set<String>,
 )
 
 data class HomeUiState(
@@ -90,11 +98,14 @@ class HomeViewModel(
             taskRepository.observeTasks(activeOnly = true),
             taskRepository.observeInstances(weekId),
             taskRepository.observeWeekStarted(weekId),
-        ) { tasks, instances, weekStarted -> Triple(tasks, instances, weekStarted) },
+            taskRepository.observeCompletedTaskIds(),
+        ) { tasks, instances, weekStarted, everCompleted ->
+            HomeSources(tasks, instances, weekStarted, everCompleted)
+        },
         themeRepository.observeTheme(year),
         ledgerRepository.observeBalance(),
         valueRepository.observeValues(),
-    ) { (tasks, instances, weekStarted), theme, balance, values ->
+    ) { (tasks, instances, weekStarted, everCompleted), theme, balance, values ->
         val today = weekCalculator.today()
         val (_, weekNumber) = weekCalculator.isoWeek(today)
         val instanceByTask = instances.associateBy { it.taskId }
@@ -103,9 +114,12 @@ class HomeViewModel(
         val rows = tasks.map { task ->
             val instance = instanceByTask[task.id]
             // Daily, habit, and days-of-week tasks are due again every scheduled day, so a
-            // completion only counts on the day it was made; weekly/ad-hoc ones hold for the week.
+            // completion only counts on the day it was made; weekly ones hold for the week, ad-hoc ones forever.
             val completed = if (task.isPerDay) {
                 today in instance?.completedDates.orEmpty()
+            } else if (task.recurrence == Recurrence.ADHOC) {
+                // Done once, in any week, and never back on the list.
+                task.id in everCompleted
             } else {
                 instance?.completed == true
             }
@@ -124,7 +138,10 @@ class HomeViewModel(
             hasTheme = theme != null,
             todayTasks = rows.filter { it.task.isDueOn(today.dayOfWeek) },
             weeklyTasks = rows.filter { it.task.recurrence == Recurrence.WEEKLY },
-            adhocTasks = rows.filter { it.task.recurrence == Recurrence.ADHOC },
+            // Ones finished in an earlier week are history, not this week's work: off the list and the count.
+            adhocTasks = rows.filter {
+                it.task.recurrence == Recurrence.ADHOC && (!it.completed || instanceByTask[it.task.id]?.completed == true)
+            },
             visibleAdhocTasks = rows.filter { it.task.recurrence == Recurrence.ADHOC && !it.completed },
             balance = balance,
             showReviewCta = !weekStarted,

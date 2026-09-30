@@ -37,6 +37,13 @@ make them pass, update the release notes, bump the version) are documented in
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
 
+### 0.13.1 — Ad-hoc tasks stay done
+
+- A **completed ad-hoc task no longer comes back** in later weeks. Until now its completion was only
+  remembered for the week it was made in, so it reappeared on Home (and in the weekly review) after
+  the week turned. Completion now counts from any week, finished ad-hoc tasks are left out of the
+  review's planning list, and checking one off a second time can't credit its points twice.
+
 ### 0.13.0 — Desktop app
 
 - MdHabits now runs on the **desktop** (Windows, macOS and Linux) with the same UI and features as

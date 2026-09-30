@@ -12,6 +12,7 @@ import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.usecase.ApplyPenaltyUseCase
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
 import com.adamfoerster.mdhabits.ui.screens.home.HomeViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -105,5 +106,38 @@ class HomeViewModelTest : MainDispatcherTest() {
         assertFalse(vm.state.value.visibleAdhocTasks.any { it.task.id == "t1" })
         assertTrue(vm.state.value.adhocTasks.first { it.task.id == "t1" }.completed)
         assertTrue(vm.state.value.allTasks.first { it.task.id == "t1" }.completed)
+    }
+
+    @Test
+    fun adhocTaskCompletedInAnEarlierWeekNeverComesBack() = runTest {
+        val tasks = InMemoryTaskRepository()
+        val ledger = InMemoryPointsLedgerRepository()
+        val wc = fixedWeekCalculator()
+        val adhoc = Task("t1", "Fix bike", points = 5, recurrence = Recurrence.ADHOC)
+        tasks.upsert(adhoc)
+        CompleteTaskUseCase(tasks, ledger)(adhoc, wc.previousWeekId(), nowCompleted = true)
+
+        val vm = newViewModel(tasks = tasks, ledger = ledger)
+        keepHot(vm.state)
+
+        assertFalse(vm.state.value.visibleAdhocTasks.any { it.task.id == "t1" })
+        assertFalse(vm.state.value.adhocTasks.any { it.task.id == "t1" })
+        assertFalse(vm.state.value.allTasks.any { it.task.id == "t1" })
+    }
+
+    @Test
+    fun completingAnAdhocTaskTwiceCreditsItsPointsOnce() = runTest {
+        val tasks = InMemoryTaskRepository()
+        val ledger = InMemoryPointsLedgerRepository()
+        val wc = fixedWeekCalculator()
+        val adhoc = Task("t1", "Fix bike", points = 5, recurrence = Recurrence.ADHOC)
+        tasks.upsert(adhoc)
+        val complete = CompleteTaskUseCase(tasks, ledger)
+
+        complete(adhoc, wc.previousWeekId(), nowCompleted = true)
+        complete(adhoc, wc.weekId(), nowCompleted = true)
+
+        assertEquals(5, ledger.currentBalance())
+        assertTrue(tasks.observeInstances(wc.weekId()).first().isEmpty())
     }
 }
