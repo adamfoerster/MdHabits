@@ -37,6 +37,17 @@ make them pass, update the release notes, bump the version) are documented in
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
 
+### 0.16.0 — Delete tasks, task filters and a cleaner list
+
+- **Delete a task.** Open a task on the task management screen and tap "Delete task" (it asks to
+  confirm). The task is removed for good; points it already earned stay in your history.
+- **Frequency filters** on the task management screen: show only All, Ad-hoc, Weekly, Daily,
+  Days of week, or Habit tasks. Days of week tasks get their own chip so they stay reachable.
+- The **"+ New" button** on the task management screen is now a larger, filled button that is easier
+  to see and tap.
+- **Completed ad-hoc tasks are hidden** from the task management screen: once an ad-hoc task has been
+  checked off it is done for good, so it no longer clutters the list.
+
 ### 0.14.0 — Health Connect: tasks that check themselves off
 
 - **Health goals on tasks (Android).** A task can now carry a health goal — at least N steps, at

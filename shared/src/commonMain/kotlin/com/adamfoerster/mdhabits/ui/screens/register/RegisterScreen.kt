@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -69,6 +71,7 @@ fun RegisterScreen(
     val strings = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     var tab by remember { mutableStateOf(CadTab.TASKS) }
+    var taskFilter by remember { mutableStateOf(TaskFilter.ALL) }
     var showSheet by remember { mutableStateOf(false) }
     var editingId by remember { mutableStateOf<String?>(null) }
     val toast = rememberToastState()
@@ -98,14 +101,32 @@ fun RegisterScreen(
             Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 20.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
                     Text(tabHeading(strings, tab), Modifier.weight(1f), style = handStyle(20.sp, Paper.subtle))
-                    Text(
-                        strings.newItem,
-                        Modifier.paperClick { showSheet = true },
-                        style = sansStyle(13.sp, Paper.accent, FontWeight.Bold),
-                    )
+                    Box(
+                        Modifier
+                            .clip(RoundedCornerShape(99.dp))
+                            .background(Paper.ink)
+                            .paperClick { showSheet = true }
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(strings.newItem, style = sansStyle(16.sp, Paper.onDark, FontWeight.Bold))
+                    }
+                }
+                if (tab == CadTab.TASKS) {
+                    Row(
+                        Modifier.horizontalScroll(rememberScrollState()).padding(top = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        TaskFilter.entries.forEach { candidate ->
+                            SelectChip(
+                                label = filterLabel(strings, candidate),
+                                selected = taskFilter == candidate,
+                            ) { taskFilter = candidate }
+                        }
+                    }
                 }
                 Column(Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                    itemsFor(strings, tab, state).forEach { item ->
+                    itemsFor(strings, tab, state, taskFilter).forEach { item ->
                         CadItemRow(item) { editingId = item.id }
                     }
                 }
@@ -132,6 +153,12 @@ fun RegisterScreen(
             linkOptions = linkOptions,
             healthSupported = healthSupported,
             onDismiss = close,
+            onDelete = editingId?.takeIf { kind == EntityKind.TASK }?.let { id ->
+                {
+                    viewModel.deleteTask(id)
+                    close()
+                }
+            },
             onSave = { name, points, recurrence, daysOfWeek, linkIds, healthGoal ->
                 val valueIds = linkIds.filter { id -> state.values.any { it.id == id } }
                 val objectiveIds = linkIds.filter { id -> state.objectives.any { it.id == id } }
@@ -212,8 +239,22 @@ private fun tabHeading(strings: Strings, tab: CadTab): String = when (tab) {
     CadTab.REWARDS -> strings.cadHeadingRewards
 }
 
-private fun itemsFor(strings: Strings, tab: CadTab, state: RegisterUiState): List<CadItem> = when (tab) {
-    CadTab.TASKS -> state.tasks.map { task ->
+private fun filterLabel(strings: Strings, filter: TaskFilter) = when (filter) {
+    TaskFilter.ALL -> strings.filterAll
+    TaskFilter.ADHOC -> strings.recurAdhoc
+    TaskFilter.WEEKLY -> strings.recurWeekly
+    TaskFilter.DAILY -> strings.recurDaily
+    TaskFilter.DAYS_OF_WEEK -> strings.recurDaysOfWeek
+    TaskFilter.HABIT -> strings.recurHabit
+}
+
+private fun itemsFor(
+    strings: Strings,
+    tab: CadTab,
+    state: RegisterUiState,
+    taskFilter: TaskFilter,
+): List<CadItem> = when (tab) {
+    CadTab.TASKS -> state.tasks.filter(taskFilter::matches).map { task ->
         CadItem(
             id = task.id,
             glyph = "✓", glyphBg = Paper.greenSoft, glyphColor = Paper.green,

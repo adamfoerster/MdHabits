@@ -25,6 +25,19 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
 
+/** Narrows the task list on the management screen to one frequency; [ALL] shows everything. */
+enum class TaskFilter(private val recurrence: Recurrence?) {
+    ALL(null),
+    ADHOC(Recurrence.ADHOC),
+    WEEKLY(Recurrence.WEEKLY),
+    DAILY(Recurrence.DAILY),
+    DAYS_OF_WEEK(Recurrence.DAYS_OF_WEEK),
+    HABIT(Recurrence.HABIT),
+    ;
+
+    fun matches(task: Task) = recurrence == null || task.recurrence == recurrence
+}
+
 data class RegisterUiState(
     val tasks: List<Task> = emptyList(),
     val theme: AnnualTheme? = null,
@@ -50,8 +63,16 @@ class RegisterViewModel(
 
     private val year = weekCalculator.today().year
 
-    val state: StateFlow<RegisterUiState> = combine(
+    // A completed ad-hoc task is finished for good, so it leaves the management list.
+    private val openTasks = combine(
         taskRepository.observeTasks(activeOnly = true),
+        taskRepository.observeCompletedTaskIds(),
+    ) { tasks, everCompleted ->
+        tasks.filterNot { it.recurrence == Recurrence.ADHOC && it.id in everCompleted }
+    }
+
+    val state: StateFlow<RegisterUiState> = combine(
+        openTasks,
         themeRepository.observeTheme(year),
         valueRepository.observeValues(),
         penaltyRepository.observePenalties(),
@@ -144,6 +165,11 @@ class RegisterViewModel(
                 healthGoal = healthGoal,
             ).stampHabitSince(weekCalculator.today()),
         )
+    }
+
+    /** Removes the task itself; the points it already earned stay in the ledger. */
+    fun deleteTask(id: String) = viewModelScope.launch {
+        taskRepository.delete(id)
     }
 
     fun updatePenalty(id: String, name: String, cost: Int) = viewModelScope.launch {

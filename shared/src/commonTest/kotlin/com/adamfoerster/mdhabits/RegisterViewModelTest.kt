@@ -13,6 +13,7 @@ import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.Reward
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.ui.screens.register.RegisterViewModel
+import com.adamfoerster.mdhabits.ui.screens.register.TaskFilter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.DayOfWeek
@@ -54,6 +55,52 @@ class RegisterViewModelTest : MainDispatcherTest() {
         assertEquals(Recurrence.WEEKLY, task.recurrence)
         assertEquals(listOf("v1"), task.linkedValueIds)
         assertEquals(listOf("o1"), task.linkedObjectiveIds)
+    }
+
+    @Test
+    fun completedAdhocTasksAreHiddenFromTheList() = runTest {
+        val tasks = InMemoryTaskRepository()
+        tasks.upsert(Task("done", "Call bank", 5, Recurrence.ADHOC))
+        tasks.upsert(Task("open", "Book trip", 5, Recurrence.ADHOC))
+        tasks.upsert(Task("weekly", "Walk", 10, Recurrence.WEEKLY))
+        tasks.upsert(Task("weeklyDone", "Read", 10, Recurrence.WEEKLY))
+
+        val vm = newViewModel(tasks = tasks)
+        keepHot(vm.state)
+        assertEquals(setOf("done", "open", "weekly", "weeklyDone"), vm.state.value.tasks.map { it.id }.toSet())
+
+        tasks.setCompleted("done", "2026-W10", true, LocalDate(2026, 3, 4))
+        tasks.setCompleted("weeklyDone", "2026-W10", true, LocalDate(2026, 3, 4))
+
+        // Only the finished ad-hoc one leaves; completed recurring tasks stay manageable.
+        assertEquals(setOf("open", "weekly", "weeklyDone"), vm.state.value.tasks.map { it.id }.toSet())
+    }
+
+    @Test
+    fun deleteTaskRemovesItFromTheListAndStorage() = runTest {
+        val tasks = InMemoryTaskRepository()
+        tasks.upsert(Task("t1", "Walk", 10, Recurrence.WEEKLY))
+        tasks.upsert(Task("t2", "Read", 10, Recurrence.DAILY))
+
+        val vm = newViewModel(tasks = tasks)
+        keepHot(vm.state)
+
+        vm.deleteTask("t1")
+
+        assertEquals(listOf("t2"), vm.state.value.tasks.map { it.id })
+        assertEquals(null, tasks.getTask("t1"))
+    }
+
+    @Test
+    fun taskFilterKeepsOnlyTheChosenFrequency() {
+        val tasks = Recurrence.entries.map { Task(it.name, it.name, 5, it) }
+
+        assertEquals(tasks, tasks.filter(TaskFilter.ALL::matches))
+        assertEquals(listOf("ADHOC"), tasks.filter(TaskFilter.ADHOC::matches).map { it.id })
+        assertEquals(listOf("WEEKLY"), tasks.filter(TaskFilter.WEEKLY::matches).map { it.id })
+        assertEquals(listOf("DAILY"), tasks.filter(TaskFilter.DAILY::matches).map { it.id })
+        assertEquals(listOf("DAYS_OF_WEEK"), tasks.filter(TaskFilter.DAYS_OF_WEEK::matches).map { it.id })
+        assertEquals(listOf("HABIT"), tasks.filter(TaskFilter.HABIT::matches).map { it.id })
     }
 
     @Test
