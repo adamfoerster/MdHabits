@@ -41,6 +41,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.kotlinx.coroutines.android)
+            implementation(libs.androidx.health.connect)
         }
         val desktopMain by getting {
             dependencies {

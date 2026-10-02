@@ -27,4 +27,7 @@ interface AppSettings {
 
     /** Id of the [com.adamfoerster.mdhabits.domain.model.Task] mdPrayer completions are applied to. */
     var mdPrayerLinkedTaskId: String?
+
+    /** Whether the optional health integration (Health Connect on Android) is turned on. */
+    var healthConnectEnabled: Boolean
 }

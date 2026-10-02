@@ -150,6 +150,15 @@ Keep the README release-notes heading, `versionName`, `MARKETING_VERSION`, and d
   `WeekCalculator.monthGrid`) listing only weeks `PointsLedgerRepository.observeRecordedWeekIds`
   reports, and the week it opens (`WeekReportScreen`) only reads the ledger and that week's review.
   Editing stays on Home, which is always the current week.
+- Health goals (`Task.healthGoal`) are filled by `SyncHealthUseCase`, which reads the platform's
+  `HealthDataSource` (Health Connect on Android via `AndroidHealthConnectSource`; iOS/Desktop bind
+  `UnsupportedHealthDataSource`, which hides every health UI). Like the mdPrayer sync it runs on
+  Home open *before* `PenalizeMissedHabitsUseCase`, only ever completes, and is idempotent. It
+  completes per-day tasks for today and yesterday only, and never a habit day already charged as
+  missed. The values it reads go into the week note's `health` frontmatter through
+  `MarkdownHealthLogRepository` (via `MarkdownWeekStore`, rewriting only when something changed);
+  health data alone doesn't count as starting a week. Health Connect's permission launcher lives
+  in `MainActivity` and reaches the source through `AndroidHealthBridge`.
 - `VaultFileSystem` implementations resolve the storage root from `AppSettings.vaultRef`
   on **every call**. Any flow that changes the vault (onboarding finish, Settings folder
   pick) must go through `storage/VaultMigrator` *before* writing notes — persisting the

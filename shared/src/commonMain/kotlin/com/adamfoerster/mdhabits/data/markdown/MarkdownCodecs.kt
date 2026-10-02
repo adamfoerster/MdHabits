@@ -1,6 +1,10 @@
 package com.adamfoerster.mdhabits.data.markdown
 
 import com.adamfoerster.mdhabits.domain.model.AnnualTheme
+import com.adamfoerster.mdhabits.domain.model.DailyHealth
+import com.adamfoerster.mdhabits.domain.model.HealthComparison
+import com.adamfoerster.mdhabits.domain.model.HealthGoal
+import com.adamfoerster.mdhabits.domain.model.HealthMetric
 import com.adamfoerster.mdhabits.domain.model.Objective
 import com.adamfoerster.mdhabits.domain.model.Penalty
 import com.adamfoerster.mdhabits.domain.model.PersonalValue
@@ -17,10 +21,14 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.isoDayNumber
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 
 /**
  * Codecs between domain models and Markdown notes. Every entity is one note whose frontmatter
@@ -109,6 +117,7 @@ object MarkdownCodecs {
                 put("objectives", task.linkedObjectiveIds.toJsonArray())
                 put("active", JsonPrimitive(task.active))
                 task.habitSince?.let { put("habit_since", JsonPrimitive(it.toString())) }
+                task.healthGoal?.let { put("health_goal", encodeHealthGoal(it)) }
             },
         ),
     )
@@ -125,7 +134,24 @@ object MarkdownCodecs {
             linkedObjectiveIds = doc.stringList("objectives"),
             active = doc.boolean("active") ?: true,
             habitSince = doc.string("habit_since")?.toLocalDateOrNull(),
+            healthGoal = (doc.fields["health_goal"] as? JsonObject)?.let { decodeHealthGoal(it) },
         )
+    }
+
+    private fun encodeHealthGoal(goal: HealthGoal): JsonElement = buildJsonObject {
+        put("metric", JsonPrimitive(goal.metric.name))
+        put("comparison", JsonPrimitive(goal.comparison.name))
+        put("target", goal.target.toCompactJson())
+    }
+
+    /** A goal with an unknown metric/comparison or a non-positive target is dropped, never fatal. */
+    private fun decodeHealthGoal(obj: JsonObject): HealthGoal? {
+        val metric = obj.primitiveOrNull("metric")?.content
+            ?.let { name -> HealthMetric.entries.find { it.name == name } } ?: return null
+        val comparison = obj.primitiveOrNull("comparison")?.content
+            ?.let { name -> HealthComparison.entries.find { it.name == name } } ?: return null
+        val target = obj.primitiveOrNull("target")?.doubleOrNull?.takeIf { it > 0 } ?: return null
+        return HealthGoal(metric, comparison, target)
     }
 
     private fun decodeRecurrence(name: String): Recurrence? = when (name) {
@@ -218,6 +244,9 @@ object MarkdownCodecs {
                         markdownJson.encodeToJsonElement(ListSerializer(InstanceDto.serializer()), dtos),
                     )
                 }
+                if (note.health.isNotEmpty()) {
+                    put("health", JsonArray(note.health.sortedBy { it.date }.map { encodeHealthDay(it) }))
+                }
                 note.review?.let { review ->
                     put("ratings", JsonObject(review.objectiveRatings.mapValues { JsonPrimitive(it.value) }))
                     put("planned", review.plannedTaskIds.toJsonArray())
@@ -260,8 +289,27 @@ object MarkdownCodecs {
         } else {
             null
         }
-        return WeekNote(weekId, decodeInstances(doc, weekId), review, events)
+        return WeekNote(weekId, decodeInstances(doc, weekId), review, events, decodeHealth(doc))
     }
+
+    /** One day of [WeekNote.health]; values that weren't recorded are left out of the object. */
+    private fun encodeHealthDay(day: DailyHealth): JsonElement = buildJsonObject {
+        put("date", JsonPrimitive(day.date.toString()))
+        day.steps?.let { put("steps", JsonPrimitive(it)) }
+        day.sleepMinutes?.let { put("sleep_min", JsonPrimitive(it)) }
+        day.weightKg?.let { put("weight_kg", it.toCompactJson()) }
+    }
+
+    private fun decodeHealth(doc: MarkdownDoc): List<DailyHealth> =
+        (doc.fields["health"] as? JsonArray).orEmpty().mapNotNull { element ->
+            val obj = element as? JsonObject ?: return@mapNotNull null
+            DailyHealth(
+                date = obj.primitiveOrNull("date")?.content?.toLocalDateOrNull() ?: return@mapNotNull null,
+                steps = obj.primitiveOrNull("steps")?.longOrNull,
+                sleepMinutes = obj.primitiveOrNull("sleep_min")?.longOrNull,
+                weightKg = obj.primitiveOrNull("weight_kg")?.doubleOrNull,
+            )
+        }
 
     private fun decodeInstances(doc: MarkdownDoc, weekId: String): List<TaskInstance> {
         val element = doc.fields["instances"] ?: return emptyList()
@@ -359,6 +407,12 @@ object MarkdownCodecs {
 
 private fun List<String>.toJsonArray(): JsonElement =
     kotlinx.serialization.json.JsonArray(map { JsonPrimitive(it) })
+
+private fun JsonObject.primitiveOrNull(key: String): JsonPrimitive? = this[key] as? JsonPrimitive
+
+/** Whole numbers are written without a trailing `.0` (`8000`, not `8000.0`), for Obsidian. */
+private fun Double.toCompactJson(): JsonPrimitive =
+    if (this % 1.0 == 0.0 && kotlin.math.abs(this) < 1e15) JsonPrimitive(toLong()) else JsonPrimitive(this)
 
 /** Weekday frontmatter values, indexed by isoDayNumber − 1, kept human-readable for Obsidian. */
 private val DAY_NAMES = listOf("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")

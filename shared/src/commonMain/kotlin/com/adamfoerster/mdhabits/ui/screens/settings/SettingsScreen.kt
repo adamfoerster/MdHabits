@@ -30,6 +30,7 @@ import com.adamfoerster.mdhabits.ui.components.Chevron
 import com.adamfoerster.mdhabits.ui.components.DownloadIcon
 import com.adamfoerster.mdhabits.ui.components.FolderIcon
 import com.adamfoerster.mdhabits.ui.components.GearIcon
+import com.adamfoerster.mdhabits.ui.components.HeartIcon
 import com.adamfoerster.mdhabits.ui.components.Kicker
 import com.adamfoerster.mdhabits.ui.components.LanguageSelector
 import com.adamfoerster.mdhabits.ui.components.PaperSwitch
@@ -60,6 +61,7 @@ fun SettingsScreen(
     val mdPrayerTasks by viewModel.mdPrayerTasks.collectAsStateWithLifecycle()
     val mdPrayerLinkedTaskId by viewModel.mdPrayerLinkedTaskId.collectAsStateWithLifecycle()
     val mdPrayerLinkedTaskTitle by viewModel.mdPrayerLinkedTaskTitle.collectAsStateWithLifecycle()
+    val healthEnabled by viewModel.healthEnabled.collectAsStateWithLifecycle()
     var showTaskPicker by remember { mutableStateOf(false) }
     val toast = rememberToastState()
 
@@ -143,6 +145,42 @@ fun SettingsScreen(
                                     title = strings.cfgMdPrayerSyncNow,
                                     subtitle = null,
                                     onClick = { viewModel.syncMdPrayerNow { toast.show(strings.cfgMdPrayerSyncSuccess) } },
+                                )
+                            }
+                        }
+                    }
+                }
+                // Health Connect
+                if (viewModel.healthSupported) {
+                    Column {
+                        SectionLabel(strings.cfgHealth, Modifier.padding(bottom = 8.dp))
+                        Column(Modifier.fillMaxWidth().paperCard(radius = 14)) {
+                            SettingRow(
+                                icon = { HeartIcon() },
+                                title = strings.cfgHealthEnable,
+                                subtitle = strings.cfgHealthHelp,
+                                trailing = {
+                                    PaperSwitch(
+                                        checked = healthEnabled,
+                                        onCheckedChange = { enabled ->
+                                            viewModel.setHealthEnabled(enabled) { result ->
+                                                when (result) {
+                                                    HealthEnableResult.NotInstalled -> toast.show(strings.cfgHealthNotInstalled)
+                                                    HealthEnableResult.Denied -> toast.show(strings.cfgHealthDenied)
+                                                    HealthEnableResult.Enabled -> toast.show(strings.cfgHealthSyncSuccess)
+                                                }
+                                            }
+                                        },
+                                    )
+                                },
+                                divider = healthEnabled,
+                            )
+                            if (healthEnabled) {
+                                SettingRow(
+                                    icon = { GearIcon() },
+                                    title = strings.cfgHealthSyncNow,
+                                    subtitle = null,
+                                    onClick = { viewModel.syncHealthNow { toast.show(strings.cfgHealthSyncSuccess) } },
                                 )
                             }
                         }

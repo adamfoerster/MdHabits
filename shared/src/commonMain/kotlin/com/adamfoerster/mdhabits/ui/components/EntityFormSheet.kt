@@ -21,11 +21,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adamfoerster.mdhabits.core.i18n.LocalStrings
+import com.adamfoerster.mdhabits.domain.model.HealthComparison
+import com.adamfoerster.mdhabits.domain.model.HealthGoal
+import com.adamfoerster.mdhabits.domain.model.HealthMetric
 import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.ui.theme.Paper
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.isoDayNumber
+import kotlin.math.roundToLong
 
 /** What kind of entity the sheet creates; drives labels and which fields appear. */
 enum class EntityKind { VALUE, OBJECTIVE, TASK, PENALTY, REWARD }
@@ -40,12 +44,14 @@ data class EntityFormInitial(
     val recurrence: Recurrence = Recurrence.WEEKLY,
     val daysOfWeek: List<DayOfWeek> = emptyList(),
     val linkIds: List<String> = emptyList(),
+    val healthGoal: HealthGoal? = null,
 )
 
 /**
  * The design's "form mode" bottom sheet — name, optional points, optional frequency and
  * optional value/objective links, ending in a dark save button. With [initial] the sheet
- * edits an existing entity instead of creating one.
+ * edits an existing entity instead of creating one. [healthSupported] adds the task's optional
+ * health goal (only where the platform has a health store).
  */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
@@ -53,8 +59,16 @@ fun EntityFormSheet(
     kind: EntityKind,
     initial: EntityFormInitial? = null,
     linkOptions: List<LinkOption> = emptyList(),
+    healthSupported: Boolean = false,
     onDismiss: () -> Unit,
-    onSave: (name: String, points: Int, recurrence: Recurrence, daysOfWeek: List<DayOfWeek>, linkIds: List<String>) -> Unit,
+    onSave: (
+        name: String,
+        points: Int,
+        recurrence: Recurrence,
+        daysOfWeek: List<DayOfWeek>,
+        linkIds: List<String>,
+        healthGoal: HealthGoal?,
+    ) -> Unit,
 ) {
     val strings = LocalStrings.current
     val texts = when (kind) {
@@ -73,6 +87,12 @@ fun EntityFormSheet(
     var recurrence by remember { mutableStateOf(initial?.recurrence ?: Recurrence.WEEKLY) }
     var daysOfWeek by remember { mutableStateOf(initial?.daysOfWeek ?: emptyList()) }
     var linkIds by remember { mutableStateOf(initial?.linkIds ?: emptyList()) }
+    var healthMetric by remember { mutableStateOf(initial?.healthGoal?.metric) }
+    var healthComparison by remember {
+        mutableStateOf(initial?.healthGoal?.comparison ?: HealthComparison.AT_LEAST)
+    }
+    var healthTarget by remember { mutableStateOf(initial?.healthGoal?.let { formTarget(it) } ?: "") }
+    val healthGoal = healthMetric?.let { parseHealthGoal(it, healthComparison, healthTarget) }
 
     PaperSheet(title = title, subtitle = texts.subtitle, onDismiss = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -135,6 +155,76 @@ fun EntityFormSheet(
                         }
                     }
                 }
+                if (healthSupported) {
+                    Column {
+                        SectionLabel(strings.healthGoal, Modifier.padding(bottom = 7.dp))
+                        androidx.compose.foundation.layout.FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(7.dp),
+                            verticalArrangement = Arrangement.spacedBy(7.dp),
+                        ) {
+                            SelectChip(label = strings.healthGoalNone, selected = healthMetric == null) {
+                                healthMetric = null
+                            }
+                            HealthMetric.entries.forEach { metric ->
+                                SelectChip(label = strings.healthMetricName(metric), selected = healthMetric == metric) {
+                                    if (healthMetric != metric) {
+                                        healthMetric = metric
+                                        // Weight goals are usually a ceiling; steps and sleep, a floor.
+                                        healthComparison = if (metric == HealthMetric.WEIGHT) {
+                                            HealthComparison.AT_MOST
+                                        } else {
+                                            HealthComparison.AT_LEAST
+                                        }
+                                        healthTarget = ""
+                                    }
+                                }
+                            }
+                        }
+                        healthMetric?.let { metric ->
+                            Row(Modifier.padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                                SelectChip(
+                                    label = strings.healthAtLeast,
+                                    selected = healthComparison == HealthComparison.AT_LEAST,
+                                ) { healthComparison = HealthComparison.AT_LEAST }
+                                SelectChip(
+                                    label = strings.healthAtMost,
+                                    selected = healthComparison == HealthComparison.AT_MOST,
+                                ) { healthComparison = HealthComparison.AT_MOST }
+                            }
+                            SectionLabel(
+                                when (metric) {
+                                    HealthMetric.STEPS -> strings.healthTargetSteps
+                                    HealthMetric.SLEEP -> strings.healthTargetSleep
+                                    HealthMetric.WEIGHT -> strings.healthTargetWeight
+                                },
+                                Modifier.padding(top = 10.dp, bottom = 5.dp),
+                            )
+                            PaperTextField(
+                                value = healthTarget,
+                                onValueChange = { new ->
+                                    healthTarget = if (metric == HealthMetric.STEPS) {
+                                        new.filter { it.isDigit() }
+                                    } else {
+                                        new.filter { it.isDigit() || it == '.' || it == ',' }
+                                    }
+                                },
+                                placeholder = when (metric) {
+                                    HealthMetric.STEPS -> "8000"
+                                    HealthMetric.SLEEP -> "7.5"
+                                    HealthMetric.WEIGHT -> "80"
+                                },
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = if (metric == HealthMetric.STEPS) KeyboardType.Number else KeyboardType.Decimal,
+                                ),
+                            )
+                            Text(
+                                strings.healthGoalHint,
+                                Modifier.padding(top = 7.dp),
+                                style = sansStyle(11.5.sp, Paper.muted),
+                            )
+                        }
+                    }
+                }
                 if (linkOptions.isNotEmpty()) {
                     Column {
                         SectionLabel(strings.linkLabel, Modifier.padding(bottom = 7.dp))
@@ -153,18 +243,34 @@ fun EntityFormSheet(
                 text = strings.save,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = name.isNotBlank() &&
-                    (!isTask || recurrence != Recurrence.DAYS_OF_WEEK || daysOfWeek.isNotEmpty()),
+                    (!isTask || recurrence != Recurrence.DAYS_OF_WEEK || daysOfWeek.isNotEmpty()) &&
+                    // A chosen health metric needs a usable target before the task can be saved.
+                    (!isTask || healthMetric == null || healthGoal != null),
             ) {
                 val days = if (recurrence == Recurrence.DAYS_OF_WEEK) {
                     daysOfWeek.sortedBy { it.isoDayNumber }
                 } else {
                     emptyList()
                 }
-                onSave(name.trim(), points.toIntOrNull() ?: 0, recurrence, days, linkIds)
+                onSave(name.trim(), points.toIntOrNull() ?: 0, recurrence, days, linkIds, healthGoal.takeIf { isTask })
             }
         }
     }
 }
+
+/**
+ * The goal typed in the form, or null while the target isn't a positive number. Sleep is typed in
+ * hours (people think "7.5 hours", not "450 minutes") and stored in minutes.
+ */
+internal fun parseHealthGoal(metric: HealthMetric, comparison: HealthComparison, target: String): HealthGoal? {
+    val value = target.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 } ?: return null
+    val stored = if (metric == HealthMetric.SLEEP) (value * 60).roundToLong().toDouble() else value
+    return HealthGoal(metric, comparison, stored)
+}
+
+/** The goal's target as the form shows it: sleep back in hours, no trailing `.0`. */
+internal fun formTarget(goal: HealthGoal): String =
+    formatDecimal(if (goal.metric == HealthMetric.SLEEP) goal.target / 60 else goal.target)
 
 private data class FormTexts(
     val title: String,

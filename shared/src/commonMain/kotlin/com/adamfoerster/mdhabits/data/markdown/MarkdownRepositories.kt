@@ -1,6 +1,7 @@
 package com.adamfoerster.mdhabits.data.markdown
 
 import com.adamfoerster.mdhabits.domain.model.AnnualTheme
+import com.adamfoerster.mdhabits.domain.model.DailyHealth
 import com.adamfoerster.mdhabits.domain.model.Penalty
 import com.adamfoerster.mdhabits.domain.model.PersonalValue
 import com.adamfoerster.mdhabits.domain.model.PointsEvent
@@ -11,6 +12,8 @@ import com.adamfoerster.mdhabits.domain.model.TaskInstance
 import com.adamfoerster.mdhabits.domain.model.WeeklyReport
 import com.adamfoerster.mdhabits.domain.model.WeeklyReview
 import com.adamfoerster.mdhabits.domain.model.completing
+import com.adamfoerster.mdhabits.domain.model.mergedWith
+import com.adamfoerster.mdhabits.domain.repository.HealthLogRepository
 import com.adamfoerster.mdhabits.domain.repository.PenaltyRepository
 import com.adamfoerster.mdhabits.domain.repository.PointsLedgerRepository
 import com.adamfoerster.mdhabits.domain.repository.RewardRepository
@@ -296,4 +299,18 @@ class MarkdownWeeklyReviewRepository(private val weeks: MarkdownWeekStore) : Wee
         .filter { it.submittedAt != null }
         .maxByOrNull { it.weekId }
         ?.weekId
+}
+
+/** Keeps the health sync's daily values in the week note's `health` frontmatter field. */
+class MarkdownHealthLogRepository(private val weeks: MarkdownWeekStore) : HealthLogRepository {
+
+    override fun observeWeek(weekId: String): Flow<List<DailyHealth>> =
+        weeks.observeNotes().map { it[weekId]?.health.orEmpty() }
+
+    override suspend fun record(weekId: String, days: List<DailyHealth>) {
+        val current = weeks.snapshot()[weekId]?.health.orEmpty()
+        // Home syncs on every open: rewriting an unchanged note would only churn the vault.
+        if (current.mergedWith(days) == current) return
+        weeks.updateWeek(weekId) { it.copy(health = it.health.mergedWith(days)) }
+    }
 }

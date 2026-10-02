@@ -45,6 +45,7 @@ import com.adamfoerster.mdhabits.ui.components.PenaltyListSheet
 import com.adamfoerster.mdhabits.ui.components.WeekPickerSheet
 import com.adamfoerster.mdhabits.ui.components.dashedBorder
 import com.adamfoerster.mdhabits.ui.components.frequencyLabel
+import com.adamfoerster.mdhabits.ui.components.healthProgressLabel
 import com.adamfoerster.mdhabits.ui.components.handStyle
 import com.adamfoerster.mdhabits.ui.components.hardShadow
 import com.adamfoerster.mdhabits.ui.components.paperClick
@@ -334,6 +335,12 @@ private fun TaskRow(row: HomeTaskRow, strings: Strings, onToggle: (Boolean) -> U
             )
             val subtitle = (row.linkedNames + strings.frequencyLabel(row.task)).joinToString(" · ")
             Text(subtitle, style = sansStyle(11.sp, Paper.faded))
+            row.task.healthGoal?.let { goal ->
+                Text(
+                    strings.healthProgressLabel(goal, row.healthToday),
+                    style = sansStyle(11.sp, Paper.accent.copy(alpha = 0.8f), FontWeight.SemiBold),
+                )
+            }
         }
         // A habit's points go both ways: earned when done, charged when the day ends undone.
         val sign = if (row.task.recurrence == Recurrence.HABIT) "±" else "+"

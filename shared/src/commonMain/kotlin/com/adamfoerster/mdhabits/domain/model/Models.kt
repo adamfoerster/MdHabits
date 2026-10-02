@@ -85,6 +85,11 @@ data class Task(
      * Stamped by [stampHabitSince]; null for every task that isn't a habit.
      */
     val habitSince: LocalDate? = null,
+    /**
+     * A goal read from the phone's health data (steps, sleep, weight). When set, the health sync
+     * completes the task by itself on the days the goal is met; null for a manually tracked task.
+     */
+    val healthGoal: HealthGoal? = null,
 ) {
     /** Whether the task belongs in a "today" list on the given weekday. */
     fun isDueOn(dayOfWeek: DayOfWeek): Boolean = when (recurrence) {
@@ -111,6 +116,65 @@ fun Task.stampHabitSince(today: LocalDate): Task = when {
     recurrence != Recurrence.HABIT -> if (habitSince == null) this else copy(habitSince = null)
     habitSince == null -> copy(habitSince = today)
     else -> this
+}
+
+/** A daily measurement the health integration reads. */
+enum class HealthMetric {
+    /** Steps walked during the day. */
+    STEPS,
+
+    /** Minutes slept in the night that ended on the day. */
+    SLEEP,
+
+    /** Body weight in kilograms — the day's latest measurement. */
+    WEIGHT,
+}
+
+/** Which side of [HealthGoal.target] meets the goal. */
+enum class HealthComparison { AT_LEAST, AT_MOST }
+
+/**
+ * A goal over one [HealthMetric], e.g. "at least 8000 steps", "at least 420 minutes of sleep" or
+ * "at most 80 kg". [target] is in the metric's own unit (steps, minutes, kilograms).
+ */
+data class HealthGoal(
+    val metric: HealthMetric,
+    val comparison: HealthComparison,
+    val target: Double,
+) {
+    /** Whether [day] meets the goal; a day without a value for the metric never does. */
+    fun isMetBy(day: DailyHealth): Boolean {
+        val value = day.valueOf(metric) ?: return false
+        return when (comparison) {
+            HealthComparison.AT_LEAST -> value >= target
+            HealthComparison.AT_MOST -> value <= target
+        }
+    }
+}
+
+/** The health data read for one day. A null value means nothing was recorded for it. */
+data class DailyHealth(
+    val date: LocalDate,
+    val steps: Long? = null,
+    val sleepMinutes: Long? = null,
+    val weightKg: Double? = null,
+) {
+    fun valueOf(metric: HealthMetric): Double? = when (metric) {
+        HealthMetric.STEPS -> steps?.toDouble()
+        HealthMetric.SLEEP -> sleepMinutes?.toDouble()
+        HealthMetric.WEIGHT -> weightKg
+    }
+
+    val isEmpty: Boolean get() = steps == null && sleepMinutes == null && weightKg == null
+}
+
+/**
+ * These days merged with [days] read later: a re-read day replaces the stored one, and a re-read day
+ * with nothing recorded drops it. Sorted by date, so an unchanged merge compares equal.
+ */
+fun List<DailyHealth>.mergedWith(days: List<DailyHealth>): List<DailyHealth> {
+    val reread = days.mapTo(mutableSetOf()) { it.date }
+    return (filter { it.date !in reread } + days.filterNot { it.isEmpty }).sortedBy { it.date }
 }
 
 /** Per-week completion state for a [Task], kept separate from the definition so history is preserved. */

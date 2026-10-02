@@ -5,6 +5,7 @@ import com.adamfoerster.mdhabits.data.markdown.MarkdownPointsLedgerRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownTaskRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownWeekStore
 import com.adamfoerster.mdhabits.data.markdown.MarkdownWeeklyReviewRepository
+import com.adamfoerster.mdhabits.data.repo.InMemoryHealthLogRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryPenaltyRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryPointsLedgerRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryTaskRepository
@@ -191,6 +192,8 @@ class WeekPickerOnHomeTest : MainDispatcherTest() {
             weekCalculator = weekCalculator,
             syncMdPrayer = disabledMdPrayerSync(weekCalculator),
             penalizeMissedHabits = habitSweep(tasks, ledger, THURSDAY),
+            syncHealth = disabledHealthSync(weekCalculator),
+            healthLogRepository = InMemoryHealthLogRepository(),
         )
         keepHot(vm.recordedWeekIds)
 

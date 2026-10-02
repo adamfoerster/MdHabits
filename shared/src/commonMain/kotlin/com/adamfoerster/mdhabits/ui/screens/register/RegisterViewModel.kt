@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.adamfoerster.mdhabits.core.datetime.WeekCalculator
 import com.adamfoerster.mdhabits.core.newId
 import com.adamfoerster.mdhabits.domain.model.AnnualTheme
+import com.adamfoerster.mdhabits.domain.model.HealthGoal
 import com.adamfoerster.mdhabits.domain.model.Objective
 import com.adamfoerster.mdhabits.domain.model.Penalty
 import com.adamfoerster.mdhabits.domain.model.PersonalValue
@@ -78,6 +79,7 @@ class RegisterViewModel(
         daysOfWeek: List<DayOfWeek> = emptyList(),
         valueIds: List<String> = emptyList(),
         objectiveIds: List<String> = emptyList(),
+        healthGoal: HealthGoal? = null,
     ) = viewModelScope.launch {
         taskRepository.upsert(
             Task(
@@ -88,6 +90,7 @@ class RegisterViewModel(
                 daysOfWeek = daysOfWeek,
                 linkedValueIds = valueIds,
                 linkedObjectiveIds = objectiveIds,
+                healthGoal = healthGoal,
             ).stampHabitSince(weekCalculator.today()),
         )
     }
@@ -127,6 +130,7 @@ class RegisterViewModel(
         daysOfWeek: List<DayOfWeek> = emptyList(),
         valueIds: List<String> = emptyList(),
         objectiveIds: List<String> = emptyList(),
+        healthGoal: HealthGoal? = null,
     ) = viewModelScope.launch {
         val existing = taskRepository.getTask(id) ?: return@launch
         taskRepository.upsert(
@@ -137,6 +141,7 @@ class RegisterViewModel(
                 daysOfWeek = daysOfWeek,
                 linkedValueIds = valueIds,
                 linkedObjectiveIds = objectiveIds,
+                healthGoal = healthGoal,
             ).stampHabitSince(weekCalculator.today()),
         )
     }

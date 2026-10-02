@@ -3,13 +3,19 @@ package com.adamfoerster.mdhabits
 import com.adamfoerster.mdhabits.core.datetime.WeekCalculator
 import com.adamfoerster.mdhabits.core.datetime.WeekRange
 import com.adamfoerster.mdhabits.core.platform.AppInfo
+import com.adamfoerster.mdhabits.data.repo.InMemoryHealthLogRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryPointsLedgerRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryTaskRepository
+import com.adamfoerster.mdhabits.domain.model.DailyHealth
+import com.adamfoerster.mdhabits.domain.repository.HealthAvailability
+import com.adamfoerster.mdhabits.domain.repository.HealthDataSource
 import com.adamfoerster.mdhabits.domain.repository.MdPrayerRepository
 import com.adamfoerster.mdhabits.domain.repository.PointsLedgerRepository
 import com.adamfoerster.mdhabits.domain.repository.TaskRepository
+import com.adamfoerster.mdhabits.domain.repository.UnsupportedHealthDataSource
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
 import com.adamfoerster.mdhabits.domain.usecase.PenalizeMissedHabitsUseCase
+import com.adamfoerster.mdhabits.domain.usecase.SyncHealthUseCase
 import com.adamfoerster.mdhabits.domain.usecase.SyncMdPrayerUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -21,6 +27,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -51,6 +58,48 @@ fun disabledMdPrayerSync(weekCalculator: WeekCalculator = fixedWeekCalculator())
     settings = FakeAppSettings(),
     mdPrayer = NoopMdPrayerRepository(),
     tasks = InMemoryTaskRepository(),
+    completeTask = CompleteTaskUseCase(InMemoryTaskRepository(), InMemoryPointsLedgerRepository()),
+    weekCalculator = weekCalculator,
+)
+
+/**
+ * A scripted health store: [days] are what Health Connect "recorded", [granted] whether the user
+ * gave access (a [requestPermissions] call grants it when [grantOnRequest]). [failing] makes every
+ * read throw, like a revoked permission or a missing provider would.
+ */
+class FakeHealthDataSource(
+    days: List<DailyHealth> = emptyList(),
+    var granted: Boolean = true,
+    var availability: HealthAvailability = HealthAvailability.AVAILABLE,
+    private val grantOnRequest: Boolean = true,
+    var failing: Boolean = false,
+) : HealthDataSource {
+    val days = days.associateBy { it.date }.toMutableMap()
+    var permissionRequests = 0
+        private set
+
+    override val isSupported = true
+    override suspend fun availability() = availability
+    override suspend fun hasPermissions() = granted
+    override suspend fun requestPermissions(): Boolean {
+        permissionRequests++
+        if (grantOnRequest) granted = true
+        return granted
+    }
+    override suspend fun readDay(date: LocalDate): DailyHealth {
+        if (failing) error("Health Connect unavailable")
+        return days[date] ?: DailyHealth(date)
+    }
+}
+
+/** A [SyncHealthUseCase] that always no-ops (the integration is off in [FakeAppSettings] by
+ *  default) — the harmless default for tests that don't exercise the health integration. */
+fun disabledHealthSync(weekCalculator: WeekCalculator = fixedWeekCalculator()) = SyncHealthUseCase(
+    settings = FakeAppSettings(),
+    source = UnsupportedHealthDataSource,
+    healthLog = InMemoryHealthLogRepository(),
+    tasks = InMemoryTaskRepository(),
+    ledger = InMemoryPointsLedgerRepository(),
     completeTask = CompleteTaskUseCase(InMemoryTaskRepository(), InMemoryPointsLedgerRepository()),
     weekCalculator = weekCalculator,
 )

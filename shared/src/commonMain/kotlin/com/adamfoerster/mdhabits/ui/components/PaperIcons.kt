@@ -114,6 +114,22 @@ fun PencilIcon(color: Color = Paper.subtle, size: Dp = 20.dp) {
     }
 }
 
+/** A heart outline, for the health integration. */
+@Composable
+fun HeartIcon(color: Color = Paper.subtle, size: Dp = 20.dp) {
+    Canvas(Modifier.size(size)) {
+        val p = Path().apply {
+            moveTo(grid(12f, 20.5f).x, grid(12f, 20.5f).y)
+            cubicTo(grid(4f, 15f).x, grid(4f, 15f).y, grid(2f, 11.5f).x, grid(2f, 11.5f).y, grid(2.5f, 8f).x, grid(2.5f, 8f).y)
+            cubicTo(grid(3.2f, 4f).x, grid(3.2f, 4f).y, grid(9f, 2.5f).x, grid(9f, 2.5f).y, grid(12f, 6.8f).x, grid(12f, 6.8f).y)
+            cubicTo(grid(15f, 2.5f).x, grid(15f, 2.5f).y, grid(20.8f, 4f).x, grid(20.8f, 4f).y, grid(21.5f, 8f).x, grid(21.5f, 8f).y)
+            cubicTo(grid(22f, 11.5f).x, grid(22f, 11.5f).y, grid(20f, 15f).x, grid(20f, 15f).y, grid(12f, 20.5f).x, grid(12f, 20.5f).y)
+            close()
+        }
+        drawPath(p, color, style = stroke(1.7.dp.toPx()))
+    }
+}
+
 @Composable
 fun StarIcon(color: Color = Paper.subtle, size: Dp = 20.dp) {
     Canvas(Modifier.size(size)) {

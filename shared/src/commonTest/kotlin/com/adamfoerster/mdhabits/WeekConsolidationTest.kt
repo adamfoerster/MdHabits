@@ -9,6 +9,7 @@ import com.adamfoerster.mdhabits.data.markdown.MarkdownValueRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownWeekStore
 import com.adamfoerster.mdhabits.data.markdown.MarkdownWeeklyReviewRepository
 import com.adamfoerster.mdhabits.data.markdown.WeekNote
+import com.adamfoerster.mdhabits.data.repo.InMemoryHealthLogRepository
 import com.adamfoerster.mdhabits.domain.model.PointsEvent
 import com.adamfoerster.mdhabits.domain.model.PointsSource
 import com.adamfoerster.mdhabits.domain.model.Task
@@ -150,6 +151,8 @@ class WeekFileReviewFlowTest : MainDispatcherTest() {
             weekCalculator = fixedWeekCalculator(iso),
             syncMdPrayer = disabledMdPrayerSync(fixedWeekCalculator(iso)),
             penalizeMissedHabits = habitSweep(tasks, ledger, iso),
+            syncHealth = disabledHealthSync(fixedWeekCalculator(iso)),
+            healthLogRepository = InMemoryHealthLogRepository(),
         )
         keepHot(vm.state)
 

@@ -1,5 +1,6 @@
 package com.adamfoerster.mdhabits.data.markdown
 
+import com.adamfoerster.mdhabits.domain.model.DailyHealth
 import com.adamfoerster.mdhabits.domain.model.PointsEvent
 import com.adamfoerster.mdhabits.domain.model.TaskInstance
 import com.adamfoerster.mdhabits.domain.model.WeeklyReview
@@ -18,6 +19,8 @@ data class WeekNote(
     val instances: List<TaskInstance> = emptyList(),
     val review: WeeklyReview? = null,
     val events: List<PointsEvent> = emptyList(),
+    /** The daily values the health sync read, one entry per day; empty without the integration. */
+    val health: List<DailyHealth> = emptyList(),
 )
 
 /**

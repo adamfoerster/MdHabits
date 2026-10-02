@@ -15,6 +15,7 @@ import com.adamfoerster.mdhabits.data.repo.InMemoryThemeRepository
 import com.adamfoerster.mdhabits.domain.model.AnnualTheme
 import com.adamfoerster.mdhabits.domain.model.Penalty
 import com.adamfoerster.mdhabits.domain.model.Task
+import com.adamfoerster.mdhabits.domain.repository.UnsupportedHealthDataSource
 import com.adamfoerster.mdhabits.storage.VaultFileSystem
 import com.adamfoerster.mdhabits.storage.VaultMigrator
 import com.adamfoerster.mdhabits.storage.VaultPicker
@@ -119,6 +120,8 @@ class SettingsVaultMigrationTest : MainDispatcherTest() {
             NoopMdPrayerRepository(),
             InMemoryTaskRepository(),
             disabledMdPrayerSync(),
+            UnsupportedHealthDataSource,
+            disabledHealthSync(),
         )
 
         viewModel.pickFolder()

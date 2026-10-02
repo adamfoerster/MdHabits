@@ -1,19 +1,28 @@
 package com.adamfoerster.mdhabits
 
+import com.adamfoerster.mdhabits.data.repo.InMemoryHealthLogRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryPenaltyRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryPointsLedgerRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryTaskRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryThemeRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryValueRepository
+import com.adamfoerster.mdhabits.domain.model.DailyHealth
+import com.adamfoerster.mdhabits.domain.model.HealthComparison
+import com.adamfoerster.mdhabits.domain.model.HealthGoal
+import com.adamfoerster.mdhabits.domain.model.HealthMetric
 import com.adamfoerster.mdhabits.domain.model.Penalty
+import com.adamfoerster.mdhabits.domain.model.PointsSource
 import com.adamfoerster.mdhabits.domain.model.PersonalValue
 import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.usecase.ApplyPenaltyUseCase
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
+import com.adamfoerster.mdhabits.domain.usecase.SyncHealthUseCase
 import com.adamfoerster.mdhabits.ui.screens.home.HomeViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -26,6 +35,8 @@ class HomeViewModelTest : MainDispatcherTest() {
         ledger: InMemoryPointsLedgerRepository = InMemoryPointsLedgerRepository(),
         values: InMemoryValueRepository = InMemoryValueRepository(),
         penalties: InMemoryPenaltyRepository = InMemoryPenaltyRepository(),
+        healthLog: InMemoryHealthLogRepository = InMemoryHealthLogRepository(),
+        syncHealth: SyncHealthUseCase? = null,
     ): HomeViewModel {
         val theme = InMemoryThemeRepository()
         val wc = fixedWeekCalculator()
@@ -40,6 +51,8 @@ class HomeViewModelTest : MainDispatcherTest() {
             weekCalculator = wc,
             syncMdPrayer = disabledMdPrayerSync(wc),
             penalizeMissedHabits = habitSweep(tasks, ledger),
+            syncHealth = syncHealth ?: disabledHealthSync(wc),
+            healthLogRepository = healthLog,
         )
     }
 
@@ -139,5 +152,48 @@ class HomeViewModelTest : MainDispatcherTest() {
 
         assertEquals(5, ledger.currentBalance())
         assertTrue(tasks.observeInstances(wc.weekId()).first().isEmpty())
+    }
+
+    @Test
+    fun aHealthGoalRowCarriesTodaysValue() = runTest {
+        val tasks = InMemoryTaskRepository()
+        val healthLog = InMemoryHealthLogRepository()
+        val wc = fixedWeekCalculator()
+        val goal = HealthGoal(HealthMetric.STEPS, HealthComparison.AT_LEAST, 8000.0)
+        tasks.upsert(Task("t1", "Walk", points = 5, recurrence = Recurrence.DAILY, healthGoal = goal))
+        tasks.upsert(Task("t2", "Read", points = 5, recurrence = Recurrence.DAILY))
+        healthLog.record(wc.weekId(), listOf(DailyHealth(wc.today(), steps = 6240)))
+
+        val vm = newViewModel(tasks = tasks, healthLog = healthLog)
+        keepHot(vm.state)
+
+        val rows = vm.state.value.todayTasks.associateBy { it.task.id }
+        assertEquals(6240.0, rows.getValue("t1").healthToday)
+        assertEquals(null, rows.getValue("t2").healthToday)
+        // Health values alone don't start the week: the review call to action stays.
+        assertTrue(vm.state.value.showReviewCta)
+    }
+
+    @Test
+    fun openingHomeSyncsHealthBeforeChargingMissedHabits() = runTest {
+        val tasks = InMemoryTaskRepository()
+        val ledger = InMemoryPointsLedgerRepository()
+        val healthLog = InMemoryHealthLogRepository()
+        val wc = fixedWeekCalculator()
+        val wednesday = LocalDate(2026, 7, 1)
+        val goal = HealthGoal(HealthMetric.STEPS, HealthComparison.AT_LEAST, 8000.0)
+        tasks.upsert(
+            Task("h1", "Walk", points = 5, recurrence = Recurrence.HABIT, habitSince = wednesday, healthGoal = goal),
+        )
+        val settings = FakeAppSettings().apply { healthConnectEnabled = true }
+        val sync = SyncHealthUseCase(
+            settings, FakeHealthDataSource(listOf(DailyHealth(wednesday, steps = 9000))), healthLog, tasks, ledger,
+            CompleteTaskUseCase(tasks, ledger, fixedClock(), TimeZone.UTC), wc,
+        )
+
+        newViewModel(tasks = tasks, ledger = ledger, healthLog = healthLog, syncHealth = sync)
+
+        assertEquals(listOf(wednesday), tasks.observeInstances(wc.weekId()).first().single().completedDates)
+        assertTrue(ledger.eventsForWeek(wc.weekId()).none { it.source == PointsSource.HABIT_MISS })
     }
 }

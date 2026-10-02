@@ -1,6 +1,7 @@
 package com.adamfoerster.mdhabits
 
 import com.adamfoerster.mdhabits.data.markdown.MarkdownCodecs
+import com.adamfoerster.mdhabits.data.repo.InMemoryHealthLogRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryPenaltyRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryPointsLedgerRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryTaskRepository
@@ -70,6 +71,8 @@ class HomeSectionsTest : MainDispatcherTest() {
         weekCalculator = fixedWeekCalculator(iso),
         syncMdPrayer = disabledMdPrayerSync(fixedWeekCalculator(iso)),
         penalizeMissedHabits = habitSweep(tasks, ledger, iso),
+        syncHealth = disabledHealthSync(fixedWeekCalculator(iso)),
+        healthLogRepository = InMemoryHealthLogRepository(),
     )
 
     @Test

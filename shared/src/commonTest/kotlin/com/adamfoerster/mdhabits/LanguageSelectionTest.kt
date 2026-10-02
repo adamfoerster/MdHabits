@@ -11,6 +11,7 @@ import com.adamfoerster.mdhabits.data.repo.InMemoryTaskRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryThemeRepository
 import com.adamfoerster.mdhabits.data.markdown.VaultInspector
 import com.adamfoerster.mdhabits.data.repo.InMemoryValueRepository
+import com.adamfoerster.mdhabits.domain.repository.UnsupportedHealthDataSource
 import com.adamfoerster.mdhabits.storage.VaultMigrator
 import com.adamfoerster.mdhabits.storage.VaultPicker
 import com.adamfoerster.mdhabits.storage.VaultSelection
@@ -29,6 +30,7 @@ class FakeAppSettings : AppSettings {
     override var mdPrayerFolderDisplayName: String? = null
     override var mdPrayerFolderRef: String? = null
     override var mdPrayerLinkedTaskId: String? = null
+    override var healthConnectEnabled: Boolean = false
 }
 
 class FakeVaultPicker : VaultPicker {
@@ -90,6 +92,7 @@ class LanguageSelectionViewModelTest : MainDispatcherTest() {
             settings, FakeVaultPicker(), VaultMigrator(FakeVaultFileSystem(), settings),
             InMemoryThemeRepository(), fixedWeekCalculator(), controller, FakeAppInfo(),
             NoopMdPrayerRepository(), InMemoryTaskRepository(), disabledMdPrayerSync(),
+            UnsupportedHealthDataSource, disabledHealthSync(),
         )
 
         viewModel.setLanguage(Lang.PT)
@@ -106,6 +109,7 @@ class LanguageSelectionViewModelTest : MainDispatcherTest() {
             InMemoryThemeRepository(), fixedWeekCalculator(), LocaleController(settings),
             FakeAppInfo(version = "0.8.0"),
             NoopMdPrayerRepository(), InMemoryTaskRepository(), disabledMdPrayerSync(),
+            UnsupportedHealthDataSource, disabledHealthSync(),
         )
 
         assertEquals("0.8.0", viewModel.version)

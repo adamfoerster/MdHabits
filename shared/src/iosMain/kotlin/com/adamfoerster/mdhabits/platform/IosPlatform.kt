@@ -58,6 +58,10 @@ class IosAppSettings : AppSettings {
         get() = defaults.stringForKey(KEY_MDPRAYER_TASK)
         set(value) = defaults.setObject(value, KEY_MDPRAYER_TASK)
 
+    override var healthConnectEnabled: Boolean
+        get() = defaults.boolForKey(KEY_HEALTH_ENABLED)
+        set(value) = defaults.setBool(value, KEY_HEALTH_ENABLED)
+
     private companion object {
         const val KEY_ONBOARDED = "onboarding_complete"
         const val KEY_VAULT_NAME = "vault_display_name"
@@ -67,6 +71,7 @@ class IosAppSettings : AppSettings {
         const val KEY_MDPRAYER_NAME = "mdprayer_folder_display_name"
         const val KEY_MDPRAYER_REF = "mdprayer_folder_ref"
         const val KEY_MDPRAYER_TASK = "mdprayer_linked_task_id"
+        const val KEY_HEALTH_ENABLED = "health_connect_enabled"
     }
 }
 

@@ -1,6 +1,7 @@
 package com.adamfoerster.mdhabits.data.repo
 
 import com.adamfoerster.mdhabits.domain.model.AnnualTheme
+import com.adamfoerster.mdhabits.domain.model.DailyHealth
 import com.adamfoerster.mdhabits.domain.model.Penalty
 import com.adamfoerster.mdhabits.domain.model.PersonalValue
 import com.adamfoerster.mdhabits.domain.model.PointsEvent
@@ -11,6 +12,8 @@ import com.adamfoerster.mdhabits.domain.model.TaskInstance
 import com.adamfoerster.mdhabits.domain.model.WeeklyReport
 import com.adamfoerster.mdhabits.domain.model.WeeklyReview
 import com.adamfoerster.mdhabits.domain.model.completing
+import com.adamfoerster.mdhabits.domain.model.mergedWith
+import com.adamfoerster.mdhabits.domain.repository.HealthLogRepository
 import com.adamfoerster.mdhabits.domain.repository.PenaltyRepository
 import com.adamfoerster.mdhabits.domain.repository.PointsLedgerRepository
 import com.adamfoerster.mdhabits.domain.repository.RewardRepository
@@ -162,6 +165,24 @@ class InMemoryWeeklyReviewRepository : WeeklyReviewRepository {
     override suspend fun upsert(review: WeeklyReview) = reviews.update { it + (review.weekId to review) }
     override suspend fun lastSubmittedWeekId(): String? =
         reviews.value.values.filter { it.submittedAt != null }.maxByOrNull { it.weekId }?.weekId
+}
+
+class InMemoryHealthLogRepository : HealthLogRepository {
+    private val weeks = MutableStateFlow<Map<String, List<DailyHealth>>>(emptyMap())
+
+    /** How many times [record] actually changed something — lets tests assert unchanged syncs don't write. */
+    var writes = 0
+        private set
+
+    override fun observeWeek(weekId: String): Flow<List<DailyHealth>> = weeks.map { it[weekId].orEmpty() }
+
+    override suspend fun record(weekId: String, days: List<DailyHealth>) {
+        val current = weeks.value[weekId].orEmpty()
+        val merged = current.mergedWith(days)
+        if (merged == current) return
+        weeks.update { it + (weekId to merged) }
+        writes++
+    }
 }
 
 private inline fun <T> List<T>.upsertBy(item: T, predicate: (T) -> Boolean): List<T> =

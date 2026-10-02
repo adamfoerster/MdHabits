@@ -7,6 +7,7 @@ import com.adamfoerster.mdhabits.data.repo.InMemoryTaskRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryThemeRepository
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.repository.MdPrayerRepository
+import com.adamfoerster.mdhabits.domain.repository.UnsupportedHealthDataSource
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
 import com.adamfoerster.mdhabits.domain.usecase.SyncMdPrayerUseCase
 import com.adamfoerster.mdhabits.storage.VaultMigrator
@@ -40,6 +41,7 @@ class SettingsMdPrayerTest : MainDispatcherTest() {
             InMemoryThemeRepository(), fixedWeekCalculator(), LocaleController(settings), FakeAppInfo(),
             mdPrayerRepository, tasks,
             SyncMdPrayerUseCase(settings, mdPrayerRepository, tasks, CompleteTaskUseCase(tasks, ledger), fixedWeekCalculator()),
+            UnsupportedHealthDataSource, disabledHealthSync(),
         )
     }
 

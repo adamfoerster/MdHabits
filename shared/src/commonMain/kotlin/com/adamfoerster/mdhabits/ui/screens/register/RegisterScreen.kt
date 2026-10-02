@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.adamfoerster.mdhabits.core.i18n.LocalStrings
 import com.adamfoerster.mdhabits.core.i18n.Strings
+import com.adamfoerster.mdhabits.domain.repository.HealthDataSource
 import com.adamfoerster.mdhabits.ui.components.EntityFormInitial
 import com.adamfoerster.mdhabits.ui.components.EntityFormSheet
 import com.adamfoerster.mdhabits.ui.components.EntityKind
@@ -41,6 +42,7 @@ import com.adamfoerster.mdhabits.ui.components.paperClick
 import com.adamfoerster.mdhabits.ui.components.rememberToastState
 import com.adamfoerster.mdhabits.ui.components.sansStyle
 import com.adamfoerster.mdhabits.ui.theme.Paper
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 private enum class CadTab { TASKS, OBJECTIVES, VALUES, PENALTIES, REWARDS }
@@ -59,7 +61,11 @@ private data class CadItem(
 )
 
 @Composable
-fun RegisterScreen(viewModel: RegisterViewModel = koinViewModel()) {
+fun RegisterScreen(
+    viewModel: RegisterViewModel = koinViewModel(),
+    // Health goals only exist where the platform has a health store (Health Connect on Android).
+    healthSupported: Boolean = koinInject<HealthDataSource>().isSupported,
+) {
     val strings = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     var tab by remember { mutableStateOf(CadTab.TASKS) }
@@ -124,8 +130,9 @@ fun RegisterScreen(viewModel: RegisterViewModel = koinViewModel()) {
             kind = kind,
             initial = editingId?.let { initialFor(tab, state, it) },
             linkOptions = linkOptions,
+            healthSupported = healthSupported,
             onDismiss = close,
-            onSave = { name, points, recurrence, daysOfWeek, linkIds ->
+            onSave = { name, points, recurrence, daysOfWeek, linkIds, healthGoal ->
                 val valueIds = linkIds.filter { id -> state.values.any { it.id == id } }
                 val objectiveIds = linkIds.filter { id -> state.objectives.any { it.id == id } }
                 val id = editingId
@@ -136,9 +143,9 @@ fun RegisterScreen(viewModel: RegisterViewModel = koinViewModel()) {
                         if (id != null) viewModel.updateObjective(id, name, points) else viewModel.addObjective(name, points)
                     EntityKind.TASK ->
                         if (id != null) {
-                            viewModel.updateTask(id, name, points, recurrence, daysOfWeek, valueIds, objectiveIds)
+                            viewModel.updateTask(id, name, points, recurrence, daysOfWeek, valueIds, objectiveIds, healthGoal)
                         } else {
-                            viewModel.addTask(name, points, recurrence, daysOfWeek, valueIds, objectiveIds)
+                            viewModel.addTask(name, points, recurrence, daysOfWeek, valueIds, objectiveIds, healthGoal)
                         }
                     EntityKind.PENALTY ->
                         if (id != null) viewModel.updatePenalty(id, name, points) else viewModel.addPenalty(name, points)
@@ -161,6 +168,7 @@ private fun initialFor(tab: CadTab, state: RegisterUiState, id: String): EntityF
             recurrence = it.recurrence,
             daysOfWeek = it.daysOfWeek,
             linkIds = it.linkedValueIds + it.linkedObjectiveIds,
+            healthGoal = it.healthGoal,
         )
     }
     CadTab.OBJECTIVES -> state.objectives.find { it.id == id }?.let { EntityFormInitial(it.title, it.points) }

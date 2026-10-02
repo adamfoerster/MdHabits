@@ -99,6 +99,10 @@ class AndroidAppSettings(context: Context) : AppSettings {
         get() = prefs.getString(KEY_MDPRAYER_TASK, null)
         set(value) = prefs.edit().putString(KEY_MDPRAYER_TASK, value).apply()
 
+    override var healthConnectEnabled: Boolean
+        get() = prefs.getBoolean(KEY_HEALTH_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(KEY_HEALTH_ENABLED, value).apply()
+
     private companion object {
         const val KEY_ONBOARDED = "onboarding_complete"
         const val KEY_VAULT_NAME = "vault_display_name"
@@ -108,5 +112,6 @@ class AndroidAppSettings(context: Context) : AppSettings {
         const val KEY_MDPRAYER_NAME = "mdprayer_folder_display_name"
         const val KEY_MDPRAYER_REF = "mdprayer_folder_ref"
         const val KEY_MDPRAYER_TASK = "mdprayer_linked_task_id"
+        const val KEY_HEALTH_ENABLED = "health_connect_enabled"
     }
 }

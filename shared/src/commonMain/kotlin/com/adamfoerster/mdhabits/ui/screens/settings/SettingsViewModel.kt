@@ -8,9 +8,12 @@ import com.adamfoerster.mdhabits.core.i18n.LocaleController
 import com.adamfoerster.mdhabits.core.platform.AppInfo
 import com.adamfoerster.mdhabits.core.settings.AppSettings
 import com.adamfoerster.mdhabits.domain.model.Task
+import com.adamfoerster.mdhabits.domain.repository.HealthAvailability
+import com.adamfoerster.mdhabits.domain.repository.HealthDataSource
 import com.adamfoerster.mdhabits.domain.repository.MdPrayerRepository
 import com.adamfoerster.mdhabits.domain.repository.TaskRepository
 import com.adamfoerster.mdhabits.domain.repository.ThemeRepository
+import com.adamfoerster.mdhabits.domain.usecase.SyncHealthUseCase
 import com.adamfoerster.mdhabits.domain.usecase.SyncMdPrayerUseCase
 import com.adamfoerster.mdhabits.storage.VaultMigrator
 import com.adamfoerster.mdhabits.storage.VaultPicker
@@ -30,6 +33,13 @@ sealed interface MdPrayerFolderResult {
     data object Cancelled : MdPrayerFolderResult
 }
 
+/** Outcome of turning the health integration on, for the screen to react to (e.g. a toast). */
+sealed interface HealthEnableResult {
+    data object Enabled : HealthEnableResult
+    data object NotInstalled : HealthEnableResult
+    data object Denied : HealthEnableResult
+}
+
 class SettingsViewModel(
     private val settings: AppSettings,
     private val vaultPicker: VaultPicker,
@@ -41,6 +51,8 @@ class SettingsViewModel(
     private val mdPrayerRepository: MdPrayerRepository,
     taskRepository: TaskRepository,
     private val syncMdPrayerUseCase: SyncMdPrayerUseCase,
+    private val healthDataSource: HealthDataSource,
+    private val syncHealthUseCase: SyncHealthUseCase,
 ) : ViewModel() {
 
     /** The installed app version shown in the About section. */
@@ -112,6 +124,45 @@ class SettingsViewModel(
     /** Runs the sync immediately instead of waiting for the next app open. */
     fun syncMdPrayerNow(onDone: () -> Unit) = viewModelScope.launch {
         syncMdPrayerUseCase()
+        onDone()
+    }
+
+    // ---- Health integration (Health Connect on Android) ----
+
+    /** False where the platform has no health store: the whole section stays hidden. */
+    val healthSupported: Boolean = healthDataSource.isSupported
+
+    private val _healthEnabled = MutableStateFlow(settings.healthConnectEnabled)
+    val healthEnabled: StateFlow<Boolean> = _healthEnabled.asStateFlow()
+
+    /**
+     * Turning it on asks for Health Connect access first and only sticks once every permission was
+     * granted; it then syncs right away so the user sees their goals checked off. Turning it off
+     * just stops reading (the permissions are the user's to revoke in Health Connect).
+     */
+    fun setHealthEnabled(enabled: Boolean, onResult: (HealthEnableResult) -> Unit = {}) = viewModelScope.launch {
+        if (!enabled) {
+            settings.healthConnectEnabled = false
+            _healthEnabled.value = false
+            return@launch
+        }
+        if (healthDataSource.availability() == HealthAvailability.NOT_INSTALLED) {
+            onResult(HealthEnableResult.NotInstalled)
+            return@launch
+        }
+        if (!healthDataSource.requestPermissions()) {
+            onResult(HealthEnableResult.Denied)
+            return@launch
+        }
+        settings.healthConnectEnabled = true
+        _healthEnabled.value = true
+        syncHealthUseCase()
+        onResult(HealthEnableResult.Enabled)
+    }
+
+    /** Runs the health sync immediately instead of waiting for the next app open. */
+    fun syncHealthNow(onDone: () -> Unit) = viewModelScope.launch {
+        syncHealthUseCase()
         onDone()
     }
 }

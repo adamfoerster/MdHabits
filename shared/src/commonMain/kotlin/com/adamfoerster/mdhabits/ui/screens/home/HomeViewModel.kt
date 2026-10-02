@@ -9,6 +9,7 @@ import com.adamfoerster.mdhabits.domain.model.Penalty
 import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.model.TaskInstance
+import com.adamfoerster.mdhabits.domain.repository.HealthLogRepository
 import com.adamfoerster.mdhabits.domain.repository.PenaltyRepository
 import com.adamfoerster.mdhabits.domain.repository.PointsLedgerRepository
 import com.adamfoerster.mdhabits.domain.repository.TaskRepository
@@ -17,6 +18,7 @@ import com.adamfoerster.mdhabits.domain.repository.ValueRepository
 import com.adamfoerster.mdhabits.domain.usecase.ApplyPenaltyUseCase
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
 import com.adamfoerster.mdhabits.domain.usecase.PenalizeMissedHabitsUseCase
+import com.adamfoerster.mdhabits.domain.usecase.SyncHealthUseCase
 import com.adamfoerster.mdhabits.domain.usecase.SyncMdPrayerUseCase
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +32,8 @@ data class HomeTaskRow(
     val planned: Boolean,
     /** Names of the values/objectives this task is linked to, for the row subtitle. */
     val linkedNames: List<String> = emptyList(),
+    /** Today's value of the metric in the task's [Task.healthGoal], or null when there is none (yet). */
+    val healthToday: Double? = null,
 )
 
 /** One month of the week picker: its calendar plus which way the month arrows can still go. */
@@ -78,17 +82,21 @@ class HomeViewModel(
     private val weekCalculator: WeekCalculator,
     private val syncMdPrayer: SyncMdPrayerUseCase,
     private val penalizeMissedHabits: PenalizeMissedHabitsUseCase,
+    private val syncHealth: SyncHealthUseCase,
+    healthLogRepository: HealthLogRepository,
 ) : ViewModel() {
 
     val weekId: String = weekCalculator.weekId()
     private val year = weekCalculator.today().year
 
     init {
-        // The app has no background-sync infra, so opening Home is the trigger for both sweeps.
-        // The mdPrayer sync is a no-op early-return unless the integration is enabled and fully
-        // configured; the habit sweep, unless a habit missed a day that has already ended.
+        // The app has no background-sync infra, so opening Home is the trigger for every sweep.
+        // The mdPrayer and health syncs are no-op early-returns unless their integration is enabled
+        // (and, for mdPrayer, fully configured); the habit sweep, unless a habit missed a day that
+        // has already ended. The syncs complete days first, so a day they fill is never charged.
         viewModelScope.launch {
             syncMdPrayer()
+            syncHealth()
             penalizeMissedHabits()
         }
     }
@@ -105,8 +113,10 @@ class HomeViewModel(
         themeRepository.observeTheme(year),
         ledgerRepository.observeBalance(),
         valueRepository.observeValues(),
-    ) { (tasks, instances, weekStarted, everCompleted), theme, balance, values ->
+        healthLogRepository.observeWeek(weekId),
+    ) { (tasks, instances, weekStarted, everCompleted), theme, balance, values, health ->
         val today = weekCalculator.today()
+        val healthToday = health.find { it.date == today }
         val (_, weekNumber) = weekCalculator.isoWeek(today)
         val instanceByTask = instances.associateBy { it.taskId }
         val valueNames = values.associate { it.id to it.name }
@@ -129,6 +139,7 @@ class HomeViewModel(
                 planned = instance?.planned == true,
                 linkedNames = task.linkedValueIds.mapNotNull(valueNames::get) +
                     task.linkedObjectiveIds.mapNotNull(objectiveNames::get),
+                healthToday = task.healthGoal?.let { goal -> healthToday?.valueOf(goal.metric) },
             )
         }.sortedWith(compareBy({ it.completed }, { it.task.title }))
         HomeUiState(

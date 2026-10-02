@@ -193,6 +193,27 @@ data class Strings(
     val cfgMdPrayerPickTaskSub: String,
     val cfgMdPrayerSyncNow: String,
     val cfgMdPrayerSyncSuccess: String,
+    // Health Connect integration (Android)
+    val cfgHealth: String,
+    val cfgHealthEnable: String,
+    val cfgHealthHelp: String,
+    val cfgHealthNotInstalled: String,
+    val cfgHealthDenied: String,
+    val cfgHealthSyncNow: String,
+    val cfgHealthSyncSuccess: String,
+    val healthGoal: String,
+    val healthGoalNone: String,
+    val healthGoalHint: String,
+    val healthSteps: String,
+    val healthSleep: String,
+    val healthWeight: String,
+    val healthAtLeast: String,
+    val healthAtMost: String,
+    val healthTargetSteps: String,
+    val healthTargetSleep: String,
+    val healthTargetWeight: String,
+    val healthPrivacyTitle: String,
+    val healthPrivacyBody: String,
     // Annual theme screen
     val themeKickerTemplate: String,
     val threeObjectivesHand: String,
@@ -360,6 +381,24 @@ private val En = Strings(
     cfgMdPrayerPickTaskTitle = "Link a task",
     cfgMdPrayerPickTaskSub = "Pick which task gets marked done on the days you prayed in mdPrayer.",
     cfgMdPrayerSyncNow = "Sync now", cfgMdPrayerSyncSuccess = "Synced with mdPrayer",
+    cfgHealth = "Health Connect", cfgHealthEnable = "Health data",
+    cfgHealthHelp = "Reads your steps, sleep and weight from Health Connect every day and checks off the tasks " +
+        "whose health goal was met. Set the goals when creating or editing a task.",
+    cfgHealthNotInstalled = "Install Health Connect from the Play Store to use this",
+    cfgHealthDenied = "Access to Health Connect wasn't granted",
+    cfgHealthSyncNow = "Sync now", cfgHealthSyncSuccess = "Synced with Health Connect",
+    healthGoal = "Health goal", healthGoalNone = "None",
+    healthGoalHint = "Checked off by itself on the days Health Connect shows the goal was met.",
+    healthSteps = "Steps", healthSleep = "Sleep", healthWeight = "Weight",
+    healthAtLeast = "at least", healthAtMost = "at most",
+    healthTargetSteps = "Target (steps)", healthTargetSleep = "Target (hours of sleep)",
+    healthTargetWeight = "Target (kg)",
+    healthPrivacyTitle = "Your health data",
+    healthPrivacyBody = "MdHabits reads your steps, sleep and weight from Health Connect, and only while the " +
+        "health integration is turned on in Settings. It uses them to check off the tasks that have a health " +
+        "goal, and writes the daily values into the week's note in the folder you chose for your notes.\n\n" +
+        "MdHabits has no servers: your health data isn't sent anywhere by the app, and the app never writes " +
+        "to Health Connect. You can revoke the access at any time in Health Connect's settings.",
     themeKickerTemplate = "Theme of the year · %1", threeObjectivesHand = "the three objectives",
     statusDone = "Achieved", progressTemplate = "%1 / %2 pts",
     revKickerTemplate = "Review · Week %1",
@@ -481,6 +520,24 @@ private val Pt = Strings(
     cfgMdPrayerPickTaskTitle = "Vincular um hábito",
     cfgMdPrayerPickTaskSub = "Escolha qual hábito será marcado como feito nos dias em que você orou no mdPrayer.",
     cfgMdPrayerSyncNow = "Sincronizar agora", cfgMdPrayerSyncSuccess = "Sincronizado com o mdPrayer",
+    cfgHealth = "Health Connect", cfgHealthEnable = "Dados de saúde",
+    cfgHealthHelp = "Lê seus passos, sono e peso do Health Connect todo dia e marca como feitas as tarefas " +
+        "cuja meta de saúde foi atingida. Defina as metas ao criar ou editar uma tarefa.",
+    cfgHealthNotInstalled = "Instale o Health Connect pela Play Store para usar isto",
+    cfgHealthDenied = "O acesso ao Health Connect não foi concedido",
+    cfgHealthSyncNow = "Sincronizar agora", cfgHealthSyncSuccess = "Sincronizado com o Health Connect",
+    healthGoal = "Meta de saúde", healthGoalNone = "Nenhuma",
+    healthGoalHint = "Marcada como feita sozinha nos dias em que o Health Connect mostrar a meta atingida.",
+    healthSteps = "Passos", healthSleep = "Sono", healthWeight = "Peso",
+    healthAtLeast = "pelo menos", healthAtMost = "no máximo",
+    healthTargetSteps = "Meta (passos)", healthTargetSleep = "Meta (horas de sono)",
+    healthTargetWeight = "Meta (kg)",
+    healthPrivacyTitle = "Seus dados de saúde",
+    healthPrivacyBody = "O MdHabits lê seus passos, sono e peso do Health Connect, e só enquanto a integração " +
+        "de saúde estiver ligada nas Configurações. Ele os usa para marcar as tarefas que têm meta de saúde e " +
+        "grava os valores diários na nota da semana, na pasta que você escolheu para suas notas.\n\n" +
+        "O MdHabits não tem servidores: o app não envia seus dados de saúde a lugar nenhum e nunca grava " +
+        "nada no Health Connect. Você pode revogar o acesso a qualquer momento nas configurações do Health Connect.",
     themeKickerTemplate = "Tema do ano · %1", threeObjectivesHand = "os três objetivos",
     statusDone = "Concluído", progressTemplate = "%1 / %2 pts",
     revKickerTemplate = "Revisão · Semana %1",
@@ -602,6 +659,24 @@ private val Es = Strings(
     cfgMdPrayerPickTaskTitle = "Vincular un hábito",
     cfgMdPrayerPickTaskSub = "Elige qué hábito se marcará como hecho los días que oraste en mdPrayer.",
     cfgMdPrayerSyncNow = "Sincronizar ahora", cfgMdPrayerSyncSuccess = "Sincronizado con mdPrayer",
+    cfgHealth = "Health Connect", cfgHealthEnable = "Datos de salud",
+    cfgHealthHelp = "Lee tus pasos, sueño y peso de Health Connect cada día y marca como hechas las tareas " +
+        "cuya meta de salud se cumplió. Define las metas al crear o editar una tarea.",
+    cfgHealthNotInstalled = "Instala Health Connect desde Play Store para usar esto",
+    cfgHealthDenied = "No se concedió el acceso a Health Connect",
+    cfgHealthSyncNow = "Sincronizar ahora", cfgHealthSyncSuccess = "Sincronizado con Health Connect",
+    healthGoal = "Meta de salud", healthGoalNone = "Ninguna",
+    healthGoalHint = "Se marca sola los días en que Health Connect muestra la meta cumplida.",
+    healthSteps = "Pasos", healthSleep = "Sueño", healthWeight = "Peso",
+    healthAtLeast = "al menos", healthAtMost = "como máximo",
+    healthTargetSteps = "Meta (pasos)", healthTargetSleep = "Meta (horas de sueño)",
+    healthTargetWeight = "Meta (kg)",
+    healthPrivacyTitle = "Tus datos de salud",
+    healthPrivacyBody = "MdHabits lee tus pasos, sueño y peso de Health Connect, y solo mientras la integración " +
+        "de salud esté activada en Ajustes. Los usa para marcar las tareas que tienen una meta de salud y " +
+        "escribe los valores diarios en la nota de la semana, en la carpeta que elegiste para tus notas.\n\n" +
+        "MdHabits no tiene servidores: la app no envía tus datos de salud a ningún lugar y nunca escribe " +
+        "en Health Connect. Puedes revocar el acceso en cualquier momento en los ajustes de Health Connect.",
     themeKickerTemplate = "Tema del año · %1", threeObjectivesHand = "los tres objetivos",
     statusDone = "Logrado", progressTemplate = "%1 / %2 pts",
     revKickerTemplate = "Revisión · Semana %1",

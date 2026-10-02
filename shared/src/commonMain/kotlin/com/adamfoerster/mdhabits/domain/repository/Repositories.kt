@@ -2,6 +2,7 @@ package com.adamfoerster.mdhabits.domain.repository
 
 import com.adamfoerster.mdhabits.core.datetime.WeekRange
 import com.adamfoerster.mdhabits.domain.model.AnnualTheme
+import com.adamfoerster.mdhabits.domain.model.DailyHealth
 import com.adamfoerster.mdhabits.domain.model.Penalty
 import com.adamfoerster.mdhabits.domain.model.PersonalValue
 import com.adamfoerster.mdhabits.domain.model.PointsEvent
@@ -84,6 +85,42 @@ interface MdPrayerRepository {
 
     /** Dates within [range] mdPrayer recorded as fully prayed (`prayed == total > 0`). */
     suspend fun completedDates(ref: String, range: WeekRange): Set<LocalDate>
+}
+
+/** Whether the platform's health store can be used on this device. */
+enum class HealthAvailability { AVAILABLE, NOT_INSTALLED, UNSUPPORTED }
+
+/**
+ * Read-only access to the platform's health store (Health Connect on Android). Platforms without
+ * one bind [UnsupportedHealthDataSource], whose [isSupported] is false and hides every health feature.
+ */
+interface HealthDataSource {
+    val isSupported: Boolean
+    suspend fun availability(): HealthAvailability
+    suspend fun hasPermissions(): Boolean
+
+    /** Asks the user for read access; true when every permission the app needs was granted. */
+    suspend fun requestPermissions(): Boolean
+
+    /** Steps and weight of [date], and the sleep of the night that ended on it. */
+    suspend fun readDay(date: LocalDate): DailyHealth
+}
+
+/** The [HealthDataSource] of platforms without a health store (iOS and Desktop, for now). */
+object UnsupportedHealthDataSource : HealthDataSource {
+    override val isSupported = false
+    override suspend fun availability() = HealthAvailability.UNSUPPORTED
+    override suspend fun hasPermissions() = false
+    override suspend fun requestPermissions() = false
+    override suspend fun readDay(date: LocalDate) = DailyHealth(date)
+}
+
+/** The daily health values recorded into each week's note, so they show up next to the week. */
+interface HealthLogRepository {
+    fun observeWeek(weekId: String): Flow<List<DailyHealth>>
+
+    /** Stores [days] in the week (replacing those dates); writes nothing when nothing changed. */
+    suspend fun record(weekId: String, days: List<DailyHealth>)
 }
 
 interface WeeklyReviewRepository {

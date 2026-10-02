@@ -37,6 +37,23 @@ make them pass, update the release notes, bump the version) are documented in
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
 
+### 0.14.0 — Health Connect: tasks that check themselves off
+
+- **Health goals on tasks (Android).** A task can now carry a health goal — at least N steps, at
+  least N hours of sleep, or at most N kg — and MdHabits checks it off by itself on the days
+  Health Connect shows the goal was met. Turn it on in Settings → Health Connect (it asks for
+  read access to steps, sleep, and weight), then pick the goal when creating or editing a task.
+- The sync runs every time Home opens (and on demand via "Sync now"). Daily, weekday, and habit
+  tasks are completed for today and yesterday, so a late walk still counts the next morning;
+  weekly tasks once any day of the week met the goal; ad-hoc tasks once. It only ever checks
+  tasks off, never unchecks them, and runs before missed habits are charged.
+- Home shows today's value under each task with a goal (e.g. "Steps: 6240 · ≥ 8000").
+- The daily values are written into the week's note (`weeks/<weekId>.md`, a `health` property),
+  so they show up in Obsidian. Nothing is sent anywhere; the app never writes to Health Connect.
+- Health goals are Android-only for now; iOS and Desktop hide them.
+- **Fix:** the create/edit sheets now scroll, so the Save button stays reachable when the form is
+  taller than the screen (e.g. a task with a health goal and several links, or with the keyboard open).
+
 ### 0.13.1 — Ad-hoc tasks stay done
 
 - A **completed ad-hoc task no longer comes back** in later weeks. Until now its completion was only

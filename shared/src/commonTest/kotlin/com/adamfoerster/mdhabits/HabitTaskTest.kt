@@ -8,6 +8,7 @@ import com.adamfoerster.mdhabits.data.markdown.MarkdownThemeRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownValueRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownWeekStore
 import com.adamfoerster.mdhabits.data.markdown.WeekNote
+import com.adamfoerster.mdhabits.data.repo.InMemoryHealthLogRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryPenaltyRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryPointsLedgerRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryTaskRepository
@@ -248,6 +249,8 @@ class HabitOnHomeTest : MainDispatcherTest() {
             weekCalculator = weekCalculator,
             syncMdPrayer = disabledMdPrayerSync(weekCalculator),
             penalizeMissedHabits = habitSweep(tasks, ledger, THURSDAY),
+            syncHealth = disabledHealthSync(weekCalculator),
+            healthLogRepository = InMemoryHealthLogRepository(),
         )
         keepHot(vm.state)
 
@@ -282,6 +285,8 @@ class HabitOnHomeTest : MainDispatcherTest() {
             weekCalculator = weekCalculator,
             syncMdPrayer = disabledMdPrayerSync(weekCalculator),
             penalizeMissedHabits = habitSweep(tasks, ledger, THURSDAY),
+            syncHealth = disabledHealthSync(weekCalculator),
+            healthLogRepository = InMemoryHealthLogRepository(),
         )
         keepHot(vm.state)
 
