@@ -64,6 +64,17 @@ class DesktopVaultFileSystemTest {
     }
 
     @Test
+    fun listModifiedReportsFileStampsAndNullForMissingFolder() = runTest {
+        assertNull(fs.listModified("weeks"))
+
+        fs.write("weeks", "a.md", "hello")
+        File(fallback, "weeks/a.md").setLastModified(1_700_000_000_000)
+        File(fallback, "weeks/notes.txt").writeText("ignored")
+
+        assertEquals(mapOf("a.md" to 1_700_000_000_000), fs.listModified("weeks"))
+    }
+
+    @Test
     fun settingsRoundTripAndClearNullable() {
         settings.languageTag = "pt-BR"
         settings.onboardingComplete = true

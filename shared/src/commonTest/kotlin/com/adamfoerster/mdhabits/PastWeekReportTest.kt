@@ -98,7 +98,7 @@ class RecordedWeeksTest {
     @Test
     fun everyWeekNoteInTheVaultCountsAsARecord() = runTest {
         val vault = FakeVaultFileSystem()
-        val store = MarkdownWeekStore(vault)
+        val store = MarkdownWeekStore(vault, fixedWeekCalculator())
         val tasks = MarkdownTaskRepository(vault, store)
         val ledger = MarkdownPointsLedgerRepository(store)
         tasks.upsert(Task("t-1", "Ler", 5))
@@ -133,14 +133,22 @@ class WeekReportViewModelTest : MainDispatcherTest() {
     @Test
     fun itShowsWhatThePickedWeekRecorded() = runTest {
         val vault = FakeVaultFileSystem()
-        val store = MarkdownWeekStore(vault)
+        // Recorded while W25 was still open…
+        val writer = MarkdownWeekStore(vault, fixedWeekCalculator("2026-06-20T12:00:00Z"))
+        MarkdownPointsLedgerRepository(writer).apply {
+            append(event("2026-W25", 8, "Concluída: Ler"))
+            append(event("2026-W25", -4, "Hábito não cumprido: Correr", PointsSource.HABIT_MISS))
+            append(event("2026-W25", -2, "Resgate: Cinema", PointsSource.REWARD))
+            append(event("2026-W26", 50, "Concluída: Semana seguinte"))
+        }
+        MarkdownWeeklyReviewRepository(writer).upsert(WeeklyReview("2026-W25", journal = "Semana difícil."))
+
+        // …closed by the next launch after it ended a week ago…
+        assertTrue(MarkdownWeekStore(vault, fixedWeekCalculator()).isClosed("2026-W25"))
+        // …and reported from a later launch, which no longer loads its body: the report reads it on demand.
+        val store = MarkdownWeekStore(vault, fixedWeekCalculator())
         val ledger = MarkdownPointsLedgerRepository(store)
-        val reviews = MarkdownWeeklyReviewRepository(store)
-        ledger.append(event("2026-W25", 8, "Concluída: Ler"))
-        ledger.append(event("2026-W25", -4, "Hábito não cumprido: Correr", PointsSource.HABIT_MISS))
-        ledger.append(event("2026-W25", -2, "Resgate: Cinema", PointsSource.REWARD))
-        ledger.append(event("2026-W26", 50, "Concluída: Semana seguinte"))
-        reviews.upsert(WeeklyReview("2026-W25", journal = "Semana difícil."))
+        assertTrue(store.snapshot().getValue("2026-W25").events.isEmpty())
 
         val vm = viewModel(ledger, store)
         vm.show("2026-W25")
@@ -161,7 +169,7 @@ class WeekReportViewModelTest : MainDispatcherTest() {
     @Test
     fun aWeekWithoutRecordsReportsItselfAsEmpty() = runTest {
         val vault = FakeVaultFileSystem()
-        val store = MarkdownWeekStore(vault)
+        val store = MarkdownWeekStore(vault, fixedWeekCalculator())
         val vm = viewModel(MarkdownPointsLedgerRepository(store), store)
 
         vm.show("2026-W20")

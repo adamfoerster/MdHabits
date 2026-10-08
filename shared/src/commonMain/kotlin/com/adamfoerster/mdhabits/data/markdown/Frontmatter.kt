@@ -52,7 +52,10 @@ object Frontmatter {
             val key = line.take(separator).trim()
             val raw = line.substring(separator + 1).trim()
             if (raw.isEmpty()) return@mapNotNull null
-            runCatching { key to markdownJson.parseToJsonElement(raw) }.getOrNull()
+            // Values are written as JSON literals; anything else (a plain YAML scalar typed in
+            // Obsidian, like `week: 2026-W41`) is kept as a string, minus any YAML quotes.
+            key to (runCatching { markdownJson.parseToJsonElement(raw) }.getOrNull()
+                ?: JsonPrimitive(raw.removeSurrounding("'").removeSurrounding("\"")))
         }.toMap()
 
         val body = lines.drop(closing + 2).joinToString("\n").trim()

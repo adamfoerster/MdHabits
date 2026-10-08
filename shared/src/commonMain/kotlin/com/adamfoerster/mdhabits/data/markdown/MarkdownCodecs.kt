@@ -19,7 +19,10 @@ import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.isoDayNumber
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonUnquotedLiteral
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -118,6 +121,7 @@ object MarkdownCodecs {
                 put("active", JsonPrimitive(task.active))
                 task.habitSince?.let { put("habit_since", JsonPrimitive(it.toString())) }
                 task.healthGoal?.let { put("health_goal", encodeHealthGoal(it)) }
+                task.doneOn?.let { put("done_on", JsonPrimitive(it.toString())) }
             },
         ),
     )
@@ -135,6 +139,7 @@ object MarkdownCodecs {
             active = doc.boolean("active") ?: true,
             habitSince = doc.string("habit_since")?.toLocalDateOrNull(),
             healthGoal = (doc.fields["health_goal"] as? JsonObject)?.let { decodeHealthGoal(it) },
+            doneOn = doc.string("done_on")?.toLocalDateOrNull(),
         )
     }
 
@@ -208,74 +213,93 @@ object MarkdownCodecs {
         )
     }
 
-    // ---- Consolidated week note (`weeks/<weekId>.md`) ----
-    // Task instances, the weekly review, and the points ledger of a week share one note:
-    // instances/ratings/planned/submittedAt live in the frontmatter, the journal is the body,
-    // and the ledger events are bullet lines under a `## Ledger` heading at the end of the body.
+    // ---- Week note (`weeks/<weekId>.md`) ----
+    // The frontmatter holds the week's points checkpoints and the review fields; the body holds the
+    // review journal followed by three line-per-entry sections — `## Health`, `## Instances`, and
+    // `## Ledger` — that link to the notes they refer to, so the week reads well in Obsidian.
+    //
+    //     ---
+    //     week: 2026-W41
+    //     closed: false
+    //     pointsAtWeekStart: 1234
+    //     ---
+    //
+    //     <journal>
+    //
+    //     ## Health
+    //
+    //     - 2026-10-08 | steps: 57 | weight_kg: 75.9
+    //
+    //     ## Instances
+    //
+    //     - [x] 2026-10-06 | false | [[MdHabits/tasks/t-1|Orar]] | ["2026-10-06"]
+    //
+    //     ## Ledger
+    //
+    //     - 2026-10-06T12:03:59.987044Z | TASK | [[MdHabits/tasks/t-1|Orar]] | 5 | L-942j9ubo
+    //     - 2026-10-06T12:04:00.835433Z | HABIT_MISS | [[MdHabits/tasks/t-1|Orar]]@2026-10-05 | -5 | L-nnon76ag
+    //
+    // Once a week is `closed` (with its `pointsAtWeekEnd`), only the frontmatter is decoded: the body
+    // is history, read in full only on demand ([decodeWeekNote] with `includeClosedBody`).
 
-    @Serializable
-    private data class InstanceDto(
-        val taskId: String,
-        val planned: Boolean = false,
-        val completed: Boolean = false,
-        val completedOn: String? = null,
-        /** Every day of the week the task was completed on; absent in notes written before 0.11.0. */
-        val dates: List<String> = emptyList(),
-    )
-
+    private const val HEALTH_HEADING = "## Health"
+    private const val INSTANCES_HEADING = "## Instances"
     private const val LEDGER_HEADING = "## Ledger"
+    private val SECTION_HEADINGS = setOf(HEALTH_HEADING, INSTANCES_HEADING, LEDGER_HEADING)
 
-    fun encodeWeekNote(note: WeekNote): String = Frontmatter.render(
-        MarkdownDoc(
-            fields = buildMap {
-                put("week", JsonPrimitive(note.weekId))
-                if (note.instances.isNotEmpty()) {
-                    val dtos = note.instances.map { instance ->
-                        InstanceDto(
-                            taskId = instance.taskId,
-                            planned = instance.planned,
-                            completed = instance.completed,
-                            completedOn = instance.completedOn?.toString(),
-                            dates = instance.completedDates.map { it.toString() },
-                        )
+    /**
+     * [linkRoot] is the vault folder's path as Obsidian sees it (e.g. `MdHabits`), prefixed to the
+     * links so they resolve from anywhere in the Obsidian vault; blank links relative to the folder.
+     */
+    @OptIn(ExperimentalSerializationApi::class)
+    fun encodeWeekNote(note: WeekNote, linkRoot: String? = null): String {
+        val links = NoteLinks(linkRoot)
+        return Frontmatter.render(
+            MarkdownDoc(
+                fields = buildMap {
+                    // Plain YAML scalars, so Obsidian shows a text, a checkbox, and numbers.
+                    put("week", JsonUnquotedLiteral(note.weekId))
+                    put("closed", JsonPrimitive(note.closed))
+                    note.pointsAtWeekStart?.let { put("pointsAtWeekStart", JsonPrimitive(it)) }
+                    if (note.closed) note.pointsAtWeekEnd?.let { put("pointsAtWeekEnd", JsonPrimitive(it)) }
+                    note.review?.let { review ->
+                        put("ratings", JsonObject(review.objectiveRatings.mapValues { JsonPrimitive(it.value) }))
+                        put("planned", review.plannedTaskIds.toJsonArray())
+                        review.submittedAt?.let { put("submittedAt", JsonPrimitive(it.toString())) }
                     }
-                    put(
-                        "instances",
-                        markdownJson.encodeToJsonElement(ListSerializer(InstanceDto.serializer()), dtos),
-                    )
-                }
-                if (note.health.isNotEmpty()) {
-                    put("health", JsonArray(note.health.sortedBy { it.date }.map { encodeHealthDay(it) }))
-                }
-                note.review?.let { review ->
-                    put("ratings", JsonObject(review.objectiveRatings.mapValues { JsonPrimitive(it.value) }))
-                    put("planned", review.plannedTaskIds.toJsonArray())
-                    review.submittedAt?.let { put("submittedAt", JsonPrimitive(it.toString())) }
-                }
-            },
-            body = buildString {
-                val journal = note.review?.journal?.trim().orEmpty()
-                if (journal.isNotEmpty()) append(journal)
-                if (note.events.isNotEmpty()) {
-                    if (isNotEmpty()) append("\n\n")
-                    appendLine(LEDGER_HEADING)
-                    append(note.events.joinToString("\n") { encodeLedgerLine(it) })
-                }
-            },
-        ),
-    )
+                },
+                body = listOfNotNull(
+                    note.review?.journal?.trim()?.takeIf { it.isNotEmpty() },
+                    note.health.takeIf { it.isNotEmpty() }?.let { days ->
+                        section(HEALTH_HEADING, days.sortedBy { it.date }.map(::encodeHealthLine))
+                    },
+                    note.instances.takeIf { it.isNotEmpty() }?.let { instances ->
+                        section(INSTANCES_HEADING, instances.map { encodeInstanceLine(it, links) })
+                    },
+                    note.events.takeIf { it.isNotEmpty() }?.let { events ->
+                        section(LEDGER_HEADING, events.map { encodeLedgerLine(it, links) })
+                    },
+                ).joinToString("\n\n"),
+            ),
+        )
+    }
 
-    fun decodeWeekNote(text: String): WeekNote? {
+    /**
+     * Decodes a week note. A closed note (`closed: true` with a `pointsAtWeekEnd`) yields only its
+     * frontmatter — checkpoints and review fields — unless [includeClosedBody] asks for the history.
+     * Lines of a section that don't parse are skipped, never fatal.
+     */
+    fun decodeWeekNote(text: String, includeClosedBody: Boolean = false): WeekNote? {
         val doc = Frontmatter.parse(text)
         val weekId = doc.string("week") ?: return null
-        val lines = doc.body.lines()
-        val headingAt = lines.indexOfFirst { it.trim() == LEDGER_HEADING }
-        val journal = (if (headingAt >= 0) lines.take(headingAt) else lines).joinToString("\n").trim()
-        val events = if (headingAt >= 0) {
-            lines.drop(headingAt + 1).mapNotNull { decodeLedgerLine(it, weekId) }
-        } else {
-            emptyList()
-        }
+        val pointsAtWeekEnd = doc.int("pointsAtWeekEnd")
+        // A note marked closed without its end checkpoint is treated as open, so it gets closed again.
+        val closed = doc.boolean("closed") == true && pointsAtWeekEnd != null
+        val pointsAtWeekStart = doc.int("pointsAtWeekStart")
+        val readBody = !closed || includeClosedBody
+
+        val sections = if (readBody) splitSections(doc.body) else emptyMap()
+        val journal = sections[null].orEmpty().joinToString("\n").trim()
         val hasReview = journal.isNotEmpty() ||
             listOf("ratings", "planned", "submittedAt").any { it in doc.fields }
         val review = if (hasReview) {
@@ -289,46 +313,148 @@ object MarkdownCodecs {
         } else {
             null
         }
-        return WeekNote(weekId, decodeInstances(doc, weekId), review, events, decodeHealth(doc))
+        return WeekNote(
+            weekId = weekId,
+            instances = sections[INSTANCES_HEADING].orEmpty().mapNotNull { decodeInstanceLine(it, weekId) },
+            review = review,
+            events = sections[LEDGER_HEADING].orEmpty().mapNotNull { decodeLedgerLine(it, weekId) },
+            health = sections[HEALTH_HEADING].orEmpty().mapNotNull(::decodeHealthLine),
+            closed = closed,
+            pointsAtWeekStart = pointsAtWeekStart,
+            pointsAtWeekEnd = pointsAtWeekEnd.takeIf { closed },
+        )
     }
 
-    /** One day of [WeekNote.health]; values that weren't recorded are left out of the object. */
-    private fun encodeHealthDay(day: DailyHealth): JsonElement = buildJsonObject {
-        put("date", JsonPrimitive(day.date.toString()))
-        day.steps?.let { put("steps", JsonPrimitive(it)) }
-        day.sleepMinutes?.let { put("sleep_min", JsonPrimitive(it)) }
-        day.weightKg?.let { put("weight_kg", it.toCompactJson()) }
-    }
+    private fun section(heading: String, lines: List<String>): String =
+        "$heading\n\n" + lines.joinToString("\n")
 
-    private fun decodeHealth(doc: MarkdownDoc): List<DailyHealth> =
-        (doc.fields["health"] as? JsonArray).orEmpty().mapNotNull { element ->
-            val obj = element as? JsonObject ?: return@mapNotNull null
-            DailyHealth(
-                date = obj.primitiveOrNull("date")?.content?.toLocalDateOrNull() ?: return@mapNotNull null,
-                steps = obj.primitiveOrNull("steps")?.longOrNull,
-                sleepMinutes = obj.primitiveOrNull("sleep_min")?.longOrNull,
-                weightKg = obj.primitiveOrNull("weight_kg")?.doubleOrNull,
-            )
+    /** Body lines per section heading; the lines before the first heading (the journal) under null. */
+    private fun splitSections(body: String): Map<String?, List<String>> {
+        val result = mutableMapOf<String?, MutableList<String>>()
+        var current: String? = null
+        body.lines().forEach { line ->
+            val heading = line.trim()
+            if (heading in SECTION_HEADINGS) {
+                current = heading
+            } else {
+                result.getOrPut(current) { mutableListOf() } += line
+            }
         }
-
-    private fun decodeInstances(doc: MarkdownDoc, weekId: String): List<TaskInstance> {
-        val element = doc.fields["instances"] ?: return emptyList()
-        return runCatching {
-            markdownJson.decodeFromJsonElement(ListSerializer(InstanceDto.serializer()), element)
-        }.getOrNull().orEmpty().map { dto ->
-            val completedOn = dto.completedOn?.toLocalDateOrNull()
-            TaskInstance(
-                taskId = dto.taskId,
-                weekId = weekId,
-                planned = dto.planned,
-                completed = dto.completed,
-                completedOn = completedOn,
-                // Pre-0.11.0 notes have no per-day history: the single stamp is all there is.
-                completedDates = dto.dates.mapNotNull { it.toLocalDateOrNull() }
-                    .ifEmpty { listOfNotNull(completedOn) },
-            )
-        }
+        return result
     }
+
+    /** `- <date> | steps: <n> | sleep_min: <n> | weight_kg: <kg>`; unrecorded values are left out. */
+    private fun encodeHealthLine(day: DailyHealth): String = buildList {
+        add(day.date.toString())
+        day.steps?.let { add("steps: $it") }
+        day.sleepMinutes?.let { add("sleep_min: $it") }
+        day.weightKg?.let { add("weight_kg: ${it.toCompactJson()}") }
+    }.joinToString(" | ", prefix = "- ")
+
+    private fun decodeHealthLine(line: String): DailyHealth? {
+        val parts = line.listItem()?.split("|")?.map { it.trim() } ?: return null
+        val date = parts.first().toLocalDateOrNull() ?: return null
+        val values = parts.drop(1).associate { it.substringBefore(':').trim() to it.substringAfter(':').trim() }
+        return DailyHealth(
+            date = date,
+            steps = values["steps"]?.toLongOrNull(),
+            sleepMinutes = values["sleep_min"]?.toLongOrNull(),
+            weightKg = values["weight_kg"]?.toDoubleOrNull(),
+        )
+    }
+
+    /** `- [x] <completedOn> | <planned> | [[<root>/tasks/<taskId>|<title>]] | <completed days as JSON>`. */
+    private fun encodeInstanceLine(instance: TaskInstance, links: NoteLinks): String {
+        val box = if (instance.completed) "[x]" else "[ ]"
+        val completedOn = instance.completedOn?.let { "$it " }.orEmpty()
+        val dates = instance.completedDates.map { it.toString() }.toJsonArray()
+        val link = links.link(TASKS_DIR, instance.taskId, alias = instance.taskTitle.takeIf { it.isNotBlank() })
+        return "- $box $completedOn| ${instance.planned} | $link | $dates"
+    }
+
+    private fun decodeInstanceLine(line: String, weekId: String): TaskInstance? {
+        val match = CHECKBOX.matchEntire(line.trim()) ?: return null
+        val completed = match.groupValues[1].isNotBlank()
+        val rest = match.groupValues[2]
+        // The link may hold pipes of its own, so the columns around it are taken from both ends.
+        val first = rest.indexOf('|').takeIf { it >= 0 } ?: return null
+        val second = rest.indexOf('|', first + 1).takeIf { it >= 0 } ?: return null
+        val last = rest.lastIndexOf('|').takeIf { it > second } ?: return null
+        val completedOn = rest.substring(0, first).trim().toLocalDateOrNull()
+        val (taskId, title) = NoteLinks.parse(rest.substring(second + 1, last).trim()) ?: return null
+        val dates = runCatching {
+            markdownJson.parseToJsonElement(rest.substring(last + 1).trim()).jsonArray
+                .mapNotNull { it.jsonPrimitive.content.toLocalDateOrNull() }
+        }.getOrDefault(emptyList())
+        return TaskInstance(
+            taskId = taskId,
+            weekId = weekId,
+            planned = rest.substring(first + 1, second).trim().toBooleanStrictOrNull() ?: false,
+            completed = completed,
+            completedOn = completedOn,
+            completedDates = dates.ifEmpty { listOfNotNull(completedOn.takeIf { completed }) },
+            taskTitle = title,
+        )
+    }
+
+    /**
+     * `- <timestamp> | <source> | <reference> | <delta> | <eventId>`. The reference links the note
+     * the entry is about, aliased with its name; a missed habit day appends `@<date>` after the link.
+     */
+    private fun encodeLedgerLine(event: PointsEvent, links: NoteLinks): String {
+        val (id, suffix) = when (event.source) {
+            PointsSource.HABIT_MISS -> event.refId.substringBefore('@') to
+                event.refId.substringAfter('@', "").let { if (it.isEmpty()) "" else "@$it" }
+            else -> event.refId to ""
+        }
+        val dir = when (event.source) {
+            PointsSource.TASK, PointsSource.HABIT_MISS -> TASKS_DIR
+            PointsSource.PENALTY -> "penalties"
+            PointsSource.REWARD -> "rewards"
+            // Objectives live inside the year's theme note.
+            PointsSource.OBJECTIVE -> "theme"
+            PointsSource.ADJUSTMENT -> null
+        }
+        val reference = if (dir == null) {
+            event.refId
+        } else {
+            // An objective has no note of its own: it links into its theme note, its id as the anchor.
+            val target = if (event.source == PointsSource.OBJECTIVE) "${event.weekId.substringBefore("-W")}#$id" else id
+            links.link(dir, target, alias = event.label) + suffix
+        }
+        return "- ${event.timestamp} | ${event.source.name} | $reference | ${event.delta} | ${event.id}"
+    }
+
+    private fun decodeLedgerLine(line: String, weekId: String): PointsEvent? {
+        val parts = line.listItem()?.split(" | ") ?: return null
+        if (parts.size < 5) return null
+        // The reference (third column) may itself contain " | " in a name: take the rest from the ends.
+        val reference = parts.subList(2, parts.size - 2).joinToString(" | ").trim()
+        val (refId, label) = if (reference.startsWith("[[")) {
+            val end = reference.indexOf("]]").takeIf { it >= 0 } ?: return null
+            val (id, name) = NoteLinks.parse(reference.substring(0, end + 2)) ?: return null
+            (id + reference.substring(end + 2).trim()) to name
+        } else {
+            reference to ""
+        }
+        return PointsEvent(
+            id = parts.last().trim(),
+            timestamp = parts[0].trim().toInstantOrNull() ?: return null,
+            weekId = weekId,
+            source = PointsSource.entries.find { it.name == parts[1].trim() } ?: return null,
+            refId = refId,
+            label = label,
+            delta = parts[parts.size - 2].trim().toIntOrNull() ?: return null,
+        )
+    }
+
+    /** The text of a `- ` list item, or null for any other line. */
+    private fun String.listItem(): String? = trim().takeIf { it.startsWith("- ") }?.removePrefix("- ")
+
+    /** `- [x] rest` / `- [ ] rest` (also `[ x ]`, as typed by hand). */
+    private val CHECKBOX = Regex("""-\s*\[\s*([xX]?)\s*]\s*(.*)""")
+
+    private const val TASKS_DIR = "tasks"
 
     private fun decodeRatings(doc: MarkdownDoc): Map<String, Int> =
         (doc.fields["ratings"] as? JsonObject)?.mapNotNull { (key, value) ->
@@ -368,24 +494,24 @@ object MarkdownCodecs {
     fun encodeLedgerWeek(weekId: String, events: List<PointsEvent>): String = Frontmatter.render(
         MarkdownDoc(
             fields = linkedMapOf("week" to JsonPrimitive(weekId)),
-            body = events.joinToString("\n") { encodeLedgerLine(it) },
+            body = events.joinToString("\n") { encodeLegacyLedgerLine(it) },
         ),
     )
 
     fun decodeLedgerWeek(text: String): List<PointsEvent>? {
         val doc = Frontmatter.parse(text)
         val weekId = doc.string("week") ?: return null
-        return doc.body.lines().mapNotNull { decodeLedgerLine(it, weekId) }
+        return doc.body.lines().mapNotNull { decodeLegacyLedgerLine(it, weekId) }
     }
 
     /** `- <timestamp> | <source> | <refId> | <delta> | <eventId> | <label as JSON string>`. */
-    private fun encodeLedgerLine(event: PointsEvent): String {
+    private fun encodeLegacyLedgerLine(event: PointsEvent): String {
         val label = JsonPrimitive(event.label)
         return "- ${event.timestamp} | ${event.source.name} | ${event.refId} | " +
             "${event.delta} | ${event.id} | $label"
     }
 
-    private fun decodeLedgerLine(line: String, weekId: String): PointsEvent? {
+    private fun decodeLegacyLedgerLine(line: String, weekId: String): PointsEvent? {
         val trimmed = line.trim()
         if (!trimmed.startsWith("- ")) return null
         // limit=6 keeps any " | " inside the JSON-encoded label intact.
@@ -425,3 +551,35 @@ private fun String.toDayOfWeekOrNull(): DayOfWeek? =
 private fun String.toLocalDateOrNull(): LocalDate? = runCatching { LocalDate.parse(this) }.getOrNull()
 
 private fun String.toInstantOrNull(): Instant? = runCatching { Instant.parse(this) }.getOrNull()
+
+/**
+ * Obsidian wikilinks between notes of the vault. [root] is the vault folder's path inside the
+ * Obsidian vault (e.g. `MdHabits`); Obsidian resolves `[[MdHabits/tasks/t-1]]` from any note.
+ */
+internal class NoteLinks(root: String?) {
+    private val prefix = root?.trim()?.trim('/')?.takeIf { it.isNotEmpty() }?.let { "$it/" }.orEmpty()
+
+    fun link(dir: String, name: String, alias: String?): String {
+        val target = "$prefix$dir/$name"
+        // "]]" would end the link early; a line break would end the list item.
+        val safe = alias?.replace("]]", "] ]")?.replace('\n', ' ')
+        return if (safe.isNullOrEmpty()) "[[$target]]" else "[[$target|$safe]]"
+    }
+
+    companion object {
+        /**
+         * (id, name) of `[[<path>|<name>]]`: the id is the linked note's file name — or the anchor,
+         * for an objective linked into its theme note (`theme/2026#<objectiveId>`) — and the alias
+         * is the name.
+         */
+        fun parse(link: String): Pair<String, String>? {
+            if (!link.startsWith("[[") || !link.endsWith("]]")) return null
+            val inner = link.removePrefix("[[").removeSuffix("]]")
+            val path = inner.substringBefore('|')
+            val name = if ('|' in inner) inner.substringAfter('|') else ""
+            val file = path.substringAfterLast('/')
+            val id = (if ('#' in file) file.substringAfter('#') else file.removeSuffix(".md")).trim()
+            return (id to name).takeIf { id.isNotEmpty() }
+        }
+    }
+}

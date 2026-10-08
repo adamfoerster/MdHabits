@@ -38,6 +38,18 @@ class AndroidVaultFileSystem(
         }.getOrDefault(emptyList()).filter { it.endsWith(MD) }
     }
 
+    override suspend fun listModified(dir: String): Map<String, Long>? = withContext(Dispatchers.IO) {
+        val tree = treeUri()
+        runCatching {
+            if (tree != null) {
+                val dirUri = findChild(tree, rootDocUri(tree), dir) ?: return@runCatching null
+                listChildren(tree, dirUri).associate { it.second to it.third }
+            } else {
+                File(fallbackRoot(), dir).listFiles()?.associate { it.name to it.lastModified() }
+            }
+        }.getOrNull()?.filterKeys { it.endsWith(MD) }
+    }
+
     override suspend fun read(dir: String, name: String): String? = withContext(Dispatchers.IO) {
         val tree = treeUri()
         runCatching {
@@ -123,23 +135,25 @@ class AndroidVaultFileSystem(
                 context.contentResolver, rootDocUri(tree), DocumentsContract.Document.MIME_TYPE_DIR, dir,
             )
 
-    /** (documentUri, displayName) of every child of [parentDocUri]. */
-    private fun listChildren(tree: Uri, parentDocUri: Uri): List<Pair<Uri, String>> {
+    /** (documentUri, displayName, lastModified epoch millis or 0) of every child of [parentDocUri]. */
+    private fun listChildren(tree: Uri, parentDocUri: Uri): List<Triple<Uri, String, Long>> {
         val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
             tree, DocumentsContract.getDocumentId(parentDocUri),
         )
-        val result = mutableListOf<Pair<Uri, String>>()
+        val result = mutableListOf<Triple<Uri, String, Long>>()
         context.contentResolver.query(
             childrenUri,
             arrayOf(
                 DocumentsContract.Document.COLUMN_DOCUMENT_ID,
                 DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                DocumentsContract.Document.COLUMN_LAST_MODIFIED,
             ),
             null, null, null,
         )?.use { cursor ->
             while (cursor.moveToNext()) {
                 val docUri = DocumentsContract.buildDocumentUriUsingTree(tree, cursor.getString(0))
-                result += docUri to cursor.getString(1)
+                val modified = if (cursor.isNull(2)) 0L else cursor.getLong(2)
+                result += Triple(docUri, cursor.getString(1), modified)
             }
         }
         return result

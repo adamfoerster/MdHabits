@@ -72,6 +72,9 @@ interface PointsLedgerRepository {
     suspend fun currentBalance(): Int
     suspend fun append(event: PointsEvent)
     suspend fun eventsForWeek(weekId: String): List<PointsEvent>
+
+    /** Whether the week is closed: settled and read-only, its history no longer loaded. */
+    suspend fun isWeekClosed(weekId: String): Boolean
     suspend fun weeklyReport(weekId: String): WeeklyReport
 
     /** Every week the journal holds a record for, oldest first — the weeks a report exists for. */

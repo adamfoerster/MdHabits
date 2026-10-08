@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.adamfoerster.mdhabits.core.i18n.LocalStrings
 import com.adamfoerster.mdhabits.core.i18n.Strings
 import com.adamfoerster.mdhabits.domain.model.PointsEvent
+import com.adamfoerster.mdhabits.domain.model.displayLabel
 import com.adamfoerster.mdhabits.ui.components.Chevron
 import com.adamfoerster.mdhabits.ui.components.Kicker
 import com.adamfoerster.mdhabits.ui.components.SectionLabel
@@ -188,7 +189,7 @@ private fun EntrySection(title: String, entries: List<PointsEvent>, color: Color
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Text(
-                        entry.label,
+                        entry.displayLabel,
                         Modifier.weight(1f),
                         style = sansStyle(13.5.sp, Paper.ink, FontWeight.Medium),
                     )

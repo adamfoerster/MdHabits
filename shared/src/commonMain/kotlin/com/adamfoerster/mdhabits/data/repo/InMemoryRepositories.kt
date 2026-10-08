@@ -134,6 +134,9 @@ class InMemoryPointsLedgerRepository : PointsLedgerRepository {
     override suspend fun eventsForWeek(weekId: String): List<PointsEvent> =
         events.value.filter { it.weekId == weekId }
 
+    // In memory nothing is ever closed.
+    override suspend fun isWeekClosed(weekId: String): Boolean = false
+
     override fun observeRecordedWeekIds(): Flow<List<String>> =
         events.map { list -> list.map { it.weekId }.distinct().sorted() }
 

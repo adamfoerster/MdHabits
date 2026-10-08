@@ -358,8 +358,7 @@ class HealthCodecTest {
         val text = MarkdownCodecs.encodeWeekNote(note)
 
         assertTrue(
-            "health: [{\"date\":\"2026-06-29\",\"steps\":8123}," +
-                "{\"date\":\"2026-06-30\",\"sleep_min\":432,\"weight_kg\":79.4}]" in text,
+            "## Health\n\n- 2026-06-29 | steps: 8123\n- 2026-06-30 | sleep_min: 432 | weight_kg: 79.4" in text,
             text,
         )
         assertEquals(note, MarkdownCodecs.decodeWeekNote(text))
@@ -379,7 +378,7 @@ class MarkdownHealthLogTest {
     @Test
     fun recordingMergesDaysAndSkipsUnchangedWrites() = runTest {
         val vault = FakeVaultFileSystem()
-        val log = MarkdownHealthLogRepository(MarkdownWeekStore(vault))
+        val log = MarkdownHealthLogRepository(MarkdownWeekStore(vault, fixedWeekCalculator()))
 
         log.record("2026-W27", listOf(steps(MON, 1000), steps(TUE, 2000)))
         log.record("2026-W27", listOf(steps(TUE, 2500), steps(WED, 3000)))
@@ -397,7 +396,7 @@ class MarkdownHealthLogTest {
     @Test
     fun healthDataAloneDoesNotStartTheWeek() = runTest {
         val vault = FakeVaultFileSystem()
-        val store = MarkdownWeekStore(vault)
+        val store = MarkdownWeekStore(vault, fixedWeekCalculator())
         val tasks = MarkdownTaskRepository(vault, store)
 
         MarkdownHealthLogRepository(store).record("2026-W27", listOf(steps(THU, 4000)))

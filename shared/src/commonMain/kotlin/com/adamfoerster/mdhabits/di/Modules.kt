@@ -2,6 +2,7 @@ package com.adamfoerster.mdhabits.di
 
 import com.adamfoerster.mdhabits.core.datetime.WeekCalculator
 import com.adamfoerster.mdhabits.core.i18n.LocaleController
+import com.adamfoerster.mdhabits.core.settings.AppSettings
 import com.adamfoerster.mdhabits.data.markdown.MarkdownHealthLogRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownMdPrayerRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownPenaltyRepository
@@ -13,6 +14,7 @@ import com.adamfoerster.mdhabits.data.markdown.MarkdownValueRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownWeekStore
 import com.adamfoerster.mdhabits.data.markdown.MarkdownWeeklyReviewRepository
 import com.adamfoerster.mdhabits.data.markdown.VaultInspector
+import com.adamfoerster.mdhabits.data.markdown.VaultWatcher
 import com.adamfoerster.mdhabits.domain.repository.HealthLogRepository
 import com.adamfoerster.mdhabits.domain.repository.MdPrayerRepository
 import com.adamfoerster.mdhabits.domain.repository.PenaltyRepository
@@ -53,7 +55,11 @@ expect fun platformModule(): Module
 
 val dataModule = module {
     // One shared store: task instances, reviews, and the ledger live in the same week notes.
-    single { MarkdownWeekStore(get()) }
+    single {
+        val settings = get<AppSettings>()
+        // Links in the week notes start at the vault folder, as Obsidian sees it (e.g. `MdHabits`).
+        MarkdownWeekStore(get(), get(), linkRoot = { settings.vaultDisplayName })
+    }
     single { MarkdownValueRepository(get()) } bind ValueRepository::class
     single { MarkdownPenaltyRepository(get()) } bind PenaltyRepository::class
     single { MarkdownTaskRepository(get(), get()) } bind TaskRepository::class
@@ -63,6 +69,18 @@ val dataModule = module {
     single { MarkdownWeeklyReviewRepository(get()) } bind WeeklyReviewRepository::class
     single { MarkdownMdPrayerRepository(get()) } bind MdPrayerRepository::class
     single { MarkdownHealthLogRepository(get()) } bind HealthLogRepository::class
+    single {
+        VaultWatcher(
+            listOf(
+                get<MarkdownWeekStore>(),
+                get<MarkdownValueRepository>(),
+                get<MarkdownPenaltyRepository>(),
+                get<MarkdownTaskRepository>(),
+                get<MarkdownRewardRepository>(),
+                get<MarkdownThemeRepository>(),
+            ),
+        )
+    }
     single { VaultMigrator(get(), get()) }
     single { VaultInspector(get()) }
     single { LocaleController(get()) }

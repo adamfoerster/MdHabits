@@ -40,6 +40,7 @@ class RoutedFakeVaultFileSystem(private val settings: AppSettings) : VaultFileSy
     private fun current() = root(settings.vaultRef)
 
     override suspend fun list(dir: String): List<String> = current().list(dir)
+    override suspend fun listModified(dir: String): Map<String, Long>? = current().listModified(dir)
     override suspend fun read(dir: String, name: String): String? = current().read(dir, name)
     override suspend fun write(dir: String, name: String, content: String) = current().write(dir, name, content)
     override suspend fun delete(dir: String, name: String) = current().delete(dir, name)
@@ -62,7 +63,7 @@ class OnboardingVaultPersistenceTest : MainDispatcherTest() {
         val viewModel = OnboardingViewModel(
             MarkdownValueRepository(vault),
             MarkdownThemeRepository(vault),
-            MarkdownTaskRepository(vault, MarkdownWeekStore(vault)),
+            MarkdownTaskRepository(vault, MarkdownWeekStore(vault, fixedWeekCalculator())),
             MarkdownPenaltyRepository(vault),
             MarkdownRewardRepository(vault),
             settings,
@@ -88,7 +89,7 @@ class OnboardingVaultPersistenceTest : MainDispatcherTest() {
         assertEquals(listOf("Run a marathon"), theme?.objectives?.map { it.title })
         assertEquals(
             listOf("Meditate"),
-            MarkdownTaskRepository(vault, MarkdownWeekStore(vault)).observeTasks().first().map { it.title },
+            MarkdownTaskRepository(vault, MarkdownWeekStore(vault, fixedWeekCalculator())).observeTasks().first().map { it.title },
         )
         assertEquals(
             listOf("Junk food"),
@@ -107,7 +108,7 @@ class SettingsVaultMigrationTest : MainDispatcherTest() {
         val vault = RoutedFakeVaultFileSystem(settings)
         // Notes created before a folder was picked live in the fallback root.
         MarkdownThemeRepository(vault).upsertTheme(AnnualTheme("theme-1", 2026, "Year of Health"))
-        MarkdownTaskRepository(vault, MarkdownWeekStore(vault)).upsert(Task("t-1", "Meditate", 5))
+        MarkdownTaskRepository(vault, MarkdownWeekStore(vault, fixedWeekCalculator())).upsert(Task("t-1", "Meditate", 5))
         MarkdownPenaltyRepository(vault).upsert(Penalty("p-1", "Junk food", 10))
         val viewModel = SettingsViewModel(
             settings,
@@ -128,7 +129,7 @@ class SettingsVaultMigrationTest : MainDispatcherTest() {
 
         assertEquals("picked-vault", settings.vaultRef)
         assertEquals("Year of Health", MarkdownThemeRepository(vault).getTheme(2026)?.name)
-        assertEquals("Meditate", MarkdownTaskRepository(vault, MarkdownWeekStore(vault)).getTask("t-1")?.title)
+        assertEquals("Meditate", MarkdownTaskRepository(vault, MarkdownWeekStore(vault, fixedWeekCalculator())).getTask("t-1")?.title)
         assertEquals("Junk food", MarkdownPenaltyRepository(vault).getPenalty("p-1")?.name)
     }
 

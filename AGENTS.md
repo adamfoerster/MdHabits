@@ -55,7 +55,8 @@ MdHabits/
   repository interfaces knows about files or Markdown.
 - **MVVM:** every screen is a `*Screen` composable + a `*ViewModel` (Koin-injected via
   `koinViewModel()`), exposing a `StateFlow` of an immutable UI-state data class.
-- **Points are derived**, never stored: sum the `PointsEvent.delta` entries in the ledger.
+- **Points are derived** from the ledger: sum the `PointsEvent.delta` entries of the open weeks on
+  top of the last closed week's `pointsAtWeekEnd` checkpoint (see `weekPoints` in `MarkdownWeekStore.kt`).
 - **Design system:** use the shared widgets and the `Paper`/`PaperFonts` tokens in
   `ui/theme/Theme.kt` and `ui/components/` — do not hardcode colors, fonts, or one-off
   paddings. The app is intentionally light-only.
@@ -141,8 +142,24 @@ Keep the README release-notes heading, `versionName`, `MARKETING_VERSION`, and d
   notes) on load. The Home weekly-review button shows only while the current week
   holds no planned or completed task (a habit charge alone doesn't count as starting a week);
   submitting the review writes the journal into the previous week's note and creates the new one.
+- Week note format (`MarkdownCodecs.encodeWeekNote`): frontmatter holds `week` (plain scalar),
+  `closed`, `pointsAtWeekStart`, `pointsAtWeekEnd` (closed weeks only) and the review fields
+  (`ratings`, `planned`, `submittedAt`); the body holds the journal, then `## Health`,
+  `## Instances` (`- [x] <completedOn> | <planned> | [[<root>/tasks/<id>|<title>]] | <dates JSON>`)
+  and `## Ledger` (`- <ts> | <SOURCE> | [[<root>/<dir>/<id>|<name>]][@<date>] | <delta> | <id>`; an
+  objective links into its theme note with its id as the anchor, `[[<root>/theme/<year>#<id>|<name>]]`).
+  `<root>` is `AppSettings.vaultDisplayName`. `PointsEvent.label` is just the entity's name; the
+  report adds the day of a missed habit (`displayLabel`).
+- **Closing weeks:** `MarkdownWeekStore` settles on load, after every write, and on every watcher
+  poll: each open week's `pointsAtWeekStart` follows the weeks before it, and a week whose Sunday
+  is more than 7 days past is closed with its `pointsAtWeekEnd`. A closed note is decoded from its
+  frontmatter only (its body is read on demand via `fullNote`, for the week report), and
+  `updateWeek` ignores it — writing it back would erase its history. Anything that needs history
+  beyond the open weeks must not read week bodies: a completed ad-hoc task is stamped
+  `Task.doneOn` (`done_on`) for that reason.
 - The `HABIT` frequency is the one task type with negative points: `PenalizeMissedHabitsUseCase`
-  sweeps the last four ISO weeks on every Home open and appends a `HABIT_MISS` ledger entry
+  sweeps the last four ISO weeks on every Home open — skipping closed weeks, so in practice the
+  current and previous one — and appends a `HABIT_MISS` ledger entry
   (refId `<taskId>@<date>`, which is what makes it idempotent) for each day that ended undone.
   It relies on `TaskInstance.completedDates` — the per-day list in the week note — and never
   charges today or days before the task's `habitSince` stamp.
@@ -155,10 +172,21 @@ Keep the README release-notes heading, `versionName`, `MARKETING_VERSION`, and d
   `UnsupportedHealthDataSource`, which hides every health UI). Like the mdPrayer sync it runs on
   Home open *before* `PenalizeMissedHabitsUseCase`, only ever completes, and is idempotent. It
   completes per-day tasks for today and yesterday only, and never a habit day already charged as
-  missed. The values it reads go into the week note's `health` frontmatter through
+  missed. The values it reads go into the week note's `## Health` section through
   `MarkdownHealthLogRepository` (via `MarkdownWeekStore`, rewriting only when something changed);
   health data alone doesn't count as starting a week. Health Connect's permission launcher lives
   in `MainActivity` and reaches the source through `AndroidHealthBridge`.
+- External edits (Syncthing, Obsidian) are picked up by `data/markdown/VaultWatcher`, which `App`
+  runs while the lifecycle is STARTED: every 3 s it calls `refreshFromVault()` on the week store
+  and the folder repositories. Each keeps a `FolderStamps` (file name → last-modified time from
+  `VaultFileSystem.listModified`) and re-reads a note when its stamp *differs* (Syncthing keeps the
+  source mtime, so "newer" isn't enough). `listModified` returns null when the folder can't be
+  listed so an unreachable vault never wipes loaded data. Mutations hold the repository's `ioGuard`
+  so a refresh never interleaves with a write, and must call `stamps.written/deleted` after
+  writing/deleting a note. A new `<dir>/<id>.md` folder repository must be added to the watcher's
+  list in `di/Modules.kt`. Syncthing conflict copies (`*.sync-conflict-*.md`) are filtered out in
+  `FolderStamps`, and week notes are only accepted from the file named after their own weekId —
+  otherwise a stale copy of the same week overrides the real note.
 - `VaultFileSystem` implementations resolve the storage root from `AppSettings.vaultRef`
   on **every call**. Any flow that changes the vault (onboarding finish, Settings folder
   pick) must go through `storage/VaultMigrator` *before* writing notes — persisting the

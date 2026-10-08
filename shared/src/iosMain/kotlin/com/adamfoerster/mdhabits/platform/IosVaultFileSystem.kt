@@ -7,8 +7,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import platform.Foundation.NSData
+import platform.Foundation.NSDate
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
+import platform.Foundation.NSFileModificationDate
+import platform.Foundation.timeIntervalSince1970
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSString
 import platform.Foundation.NSURL
@@ -40,6 +43,17 @@ class IosVaultFileSystem(private val settings: AppSettings) : VaultFileSystem {
             .contentsOfDirectoryAtPath("${root()}/$dir", null)
             .orEmpty()
         names.filterIsInstance<String>().filter { it.endsWith(".md") }
+    }
+
+    override suspend fun listModified(dir: String): Map<String, Long>? = withContext(Dispatchers.IO) {
+        val folder = "${root()}/$dir"
+        val manager = NSFileManager.defaultManager
+        val names = manager.contentsOfDirectoryAtPath(folder, null) ?: return@withContext null
+        names.filterIsInstance<String>().filter { it.endsWith(".md") }.associateWith { name ->
+            val date = manager.attributesOfItemAtPath("$folder/$name", null)
+                ?.get(NSFileModificationDate) as? NSDate
+            date?.let { (it.timeIntervalSince1970 * 1000).toLong() } ?: 0L
+        }
     }
 
     override suspend fun read(dir: String, name: String): String? = withContext(Dispatchers.IO) {

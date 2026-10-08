@@ -13,6 +13,14 @@ interface VaultFileSystem {
     /** Names of the `.md` files directly inside [dir], or empty if the folder doesn't exist. */
     suspend fun list(dir: String): List<String>
 
+    /**
+     * The `.md` files directly inside [dir] mapped to their last-modified time (epoch millis), or
+     * null when the folder doesn't exist or can't be read. Null — not empty — is what tells "the
+     * vault is unreachable right now" apart from "every note was deleted", so a refresh never
+     * wipes the loaded data because of a transient access failure.
+     */
+    suspend fun listModified(dir: String): Map<String, Long>?
+
     /** The text content of `dir/name`, or null if it doesn't exist or can't be read. */
     suspend fun read(dir: String, name: String): String?
 

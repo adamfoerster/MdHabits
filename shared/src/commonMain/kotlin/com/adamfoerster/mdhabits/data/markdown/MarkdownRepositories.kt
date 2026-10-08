@@ -6,6 +6,7 @@ import com.adamfoerster.mdhabits.domain.model.Penalty
 import com.adamfoerster.mdhabits.domain.model.PersonalValue
 import com.adamfoerster.mdhabits.domain.model.PointsEvent
 import com.adamfoerster.mdhabits.domain.model.PointsSource
+import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.Reward
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.model.TaskInstance
@@ -24,6 +25,7 @@ import com.adamfoerster.mdhabits.domain.repository.WeeklyReviewRepository
 import com.adamfoerster.mdhabits.storage.VaultFileSystem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -44,14 +46,21 @@ import kotlinx.datetime.LocalDate
  * review, and points ledger together, owned by the shared [MarkdownWeekStore].
  */
 
-/** Shared load-once + write-through plumbing for the simple `<id>.md`-per-entity folders. */
+/**
+ * Shared load-once + write-through plumbing for the simple `<id>.md`-per-entity folders, plus
+ * [refreshFromVault] to pick up notes changed outside the app (a note that no longer decodes keeps
+ * its last good value in memory).
+ */
 abstract class MarkdownCrudRepository<T>(
     private val vault: VaultFileSystem,
     private val dir: String,
-) {
+) : VaultRefreshable {
     protected val items = MutableStateFlow<List<T>>(emptyList())
     private val loadGuard = Mutex()
     private var loaded = false
+    private val stamps = FolderStamps(vault, dir)
+    // Serializes writes with refreshes, so a refresh never reads a note the app is mid-way writing.
+    private val ioGuard = Mutex()
 
     protected abstract fun idOf(item: T): String
     protected abstract fun encode(item: T): String
@@ -59,11 +68,22 @@ abstract class MarkdownCrudRepository<T>(
 
     protected suspend fun ensureLoaded() = loadGuard.withLock {
         if (loaded) return@withLock
-        items.value = vault.list(dir).mapNotNull { name ->
-            vault.read(dir, name)?.let(::decode)
-        }
+        items.value = stamps.changes()?.changed.orEmpty().values.mapNotNull(::decode)
         loaded = true
     }
+
+    override suspend fun refreshFromVault() = ioGuard.withLock {
+        if (!loaded) return@withLock
+        val changes = stamps.changes()?.takeUnless { it.isEmpty } ?: return@withLock
+        val removedIds = changes.removed.mapTo(mutableSetOf()) { it.noteKey() }
+        val decoded = changes.changed.values.mapNotNull(::decode)
+        items.update { list ->
+            decoded.fold(list.filterNot { idOf(it) in removedIds }) { acc, item -> acc.upserting(item) }
+        }
+    }
+
+    private fun List<T>.upserting(item: T): List<T> =
+        if (any { idOf(it) == idOf(item) }) map { if (idOf(it) == idOf(item)) item else it } else this + item
 
     protected fun observeAll(): Flow<List<T>> = flow {
         ensureLoaded()
@@ -77,20 +97,20 @@ abstract class MarkdownCrudRepository<T>(
 
     protected suspend fun save(item: T) {
         ensureLoaded()
-        items.update { list ->
-            if (list.any { idOf(it) == idOf(item) }) {
-                list.map { if (idOf(it) == idOf(item)) item else it }
-            } else {
-                list + item
-            }
+        ioGuard.withLock {
+            items.update { it.upserting(item) }
+            vault.write(dir, "${idOf(item)}.md", encode(item))
+            stamps.written("${idOf(item)}.md")
         }
-        vault.write(dir, "${idOf(item)}.md", encode(item))
     }
 
     protected suspend fun remove(id: String) {
         ensureLoaded()
-        items.update { list -> list.filterNot { idOf(it) == id } }
-        vault.delete(dir, "$id.md")
+        ioGuard.withLock {
+            items.update { list -> list.filterNot { idOf(it) == id } }
+            vault.delete(dir, "$id.md")
+            stamps.deleted("$id.md")
+        }
     }
 }
 
@@ -163,48 +183,79 @@ class MarkdownTaskRepository(
             notes[weekId]?.let { it.instances.isNotEmpty() || it.review != null } == true
         }
 
+    // Ad-hoc tasks are done for good once checked off. Their completion is read from the open
+    // weeks and from the task's own `done_on` stamp, which outlives the week note being closed.
     override fun observeCompletedTaskIds(): Flow<Set<String>> =
-        weeks.observeNotes().map { notes ->
-            notes.values.flatMap { it.instances }.filter { it.completed }.mapTo(mutableSetOf()) { it.taskId }
+        combine(weeks.observeNotes(), observeAll()) { notes, tasks ->
+            notes.values.flatMap { it.instances }.filter { it.completed }.mapTo(mutableSetOf()) { it.taskId } +
+                tasks.filter { it.doneOn != null }.map { it.id }
         }
 
-    override suspend fun setPlanned(weekId: String, taskIds: List<String>) = weeks.updateWeek(weekId) { note ->
-        val existing = note.instances.associateBy { it.taskId }
-        val updated = taskIds.map { id ->
-            existing[id]?.copy(planned = true) ?: TaskInstance(id, weekId, planned = true)
+    override suspend fun setPlanned(weekId: String, taskIds: List<String>) {
+        val titles = titlesOf(taskIds)
+        weeks.updateWeek(weekId) { note ->
+            val existing = note.instances.associateBy { it.taskId }
+            val updated = taskIds.map { id ->
+                (existing[id]?.copy(planned = true) ?: TaskInstance(id, weekId, planned = true))
+                    .withTitle(titles[id])
+            }
+            // Keep completed instances for tasks no longer planned so history is preserved.
+            val keptCompleted = existing.values.filter { it.taskId !in taskIds && it.completed }
+                .map { it.copy(planned = false) }
+            note.copy(instances = updated + keptCompleted)
         }
-        // Keep completed instances for tasks no longer planned so history is preserved.
-        val keptCompleted = existing.values.filter { it.taskId !in taskIds && it.completed }
-            .map { it.copy(planned = false) }
-        note.copy(instances = updated + keptCompleted)
     }
 
-    override suspend fun setCompleted(taskId: String, weekId: String, completed: Boolean, on: LocalDate) =
+    override suspend fun setCompleted(taskId: String, weekId: String, completed: Boolean, on: LocalDate) {
+        val task = getById(taskId)
         weeks.updateWeek(weekId) { note ->
             val current = note.instances.find { it.taskId == taskId }
-            val updated = (current ?: TaskInstance(taskId, weekId)).completing(completed, on)
+            val updated = (current ?: TaskInstance(taskId, weekId)).completing(completed, on).withTitle(task?.title)
             note.copy(instances = note.instances.filterNot { it.taskId == taskId } + updated)
         }
+        if (task?.recurrence == Recurrence.ADHOC) {
+            val doneOn = if (completed) on else null
+            if (task.doneOn != doneOn) save(task.copy(doneOn = doneOn))
+        }
+    }
+
+    private suspend fun titlesOf(ids: List<String>): Map<String, String> {
+        ensureLoaded()
+        return items.value.filter { it.id in ids }.associate { it.id to it.title }
+    }
+
+    private fun TaskInstance.withTitle(title: String?) = if (title == null) this else copy(taskTitle = title)
 
     private companion object { const val DIR = "tasks" }
 }
 
-class MarkdownThemeRepository(private val vault: VaultFileSystem) : ThemeRepository {
+class MarkdownThemeRepository(private val vault: VaultFileSystem) : ThemeRepository, VaultRefreshable {
     private val themes = MutableStateFlow<Map<Int, AnnualTheme>>(emptyMap())
     private val loadGuard = Mutex()
     private var loaded = false
+    private val stamps = FolderStamps(vault, DIR)
+    private val ioGuard = Mutex()
 
     private suspend fun ensureLoaded() = loadGuard.withLock {
         if (loaded) return@withLock
-        themes.value = vault.list(DIR)
-            .mapNotNull { name -> vault.read(DIR, name)?.let(MarkdownCodecs::decodeTheme) }
+        themes.value = stamps.changes()?.changed.orEmpty().values
+            .mapNotNull(MarkdownCodecs::decodeTheme)
             .associateBy { it.year }
         loaded = true
     }
 
-    private suspend fun persist(theme: AnnualTheme) {
+    override suspend fun refreshFromVault() = ioGuard.withLock {
+        if (!loaded) return@withLock
+        val changes = stamps.changes()?.takeUnless { it.isEmpty } ?: return@withLock
+        val removedYears = changes.removed.mapNotNullTo(mutableSetOf()) { it.noteKey().toIntOrNull() }
+        val decoded = changes.changed.values.mapNotNull(MarkdownCodecs::decodeTheme)
+        themes.update { current -> current - removedYears + decoded.associateBy { it.year } }
+    }
+
+    private suspend fun persist(theme: AnnualTheme) = ioGuard.withLock {
         themes.update { it + (theme.year to theme) }
         vault.write(DIR, "${theme.year}.md", MarkdownCodecs.encodeTheme(theme))
+        stamps.written("${theme.year}.md")
     }
 
     override fun observeTheme(year: Int): Flow<AnnualTheme?> = flow {
@@ -246,14 +297,10 @@ class MarkdownThemeRepository(private val vault: VaultFileSystem) : ThemeReposit
 
 class MarkdownPointsLedgerRepository(private val weeks: MarkdownWeekStore) : PointsLedgerRepository {
 
-    // weekIds sort chronologically, keeping the ledger in order across weeks.
-    private fun allEvents(notes: Map<String, WeekNote>): List<PointsEvent> =
-        notes.keys.sorted().flatMap { notes.getValue(it).events }
+    // Closed weeks count through their pointsAtWeekEnd checkpoint; only open weeks' events are summed.
+    override fun observeBalance(): Flow<Int> = weeks.observeNotes().map(::balanceOf)
 
-    override fun observeBalance(): Flow<Int> =
-        weeks.observeNotes().map { notes -> allEvents(notes).sumOf { it.delta } }
-
-    override suspend fun currentBalance(): Int = allEvents(weeks.snapshot()).sumOf { it.delta }
+    override suspend fun currentBalance(): Int = balanceOf(weeks.snapshot())
 
     override suspend fun append(event: PointsEvent) =
         weeks.updateWeek(event.weekId) { it.copy(events = it.events + event) }
@@ -261,12 +308,14 @@ class MarkdownPointsLedgerRepository(private val weeks: MarkdownWeekStore) : Poi
     override suspend fun eventsForWeek(weekId: String): List<PointsEvent> =
         weeks.snapshot()[weekId]?.events.orEmpty()
 
+    override suspend fun isWeekClosed(weekId: String): Boolean = weeks.isClosed(weekId)
+
     override fun observeRecordedWeekIds(): Flow<List<String>> =
         weeks.observeNotes().map { notes -> notes.keys.sorted() }
 
     override suspend fun weeklyReport(weekId: String): WeeklyReport {
-        val notes = weeks.snapshot()
-        val week = notes[weekId]?.events.orEmpty()
+        // A closed week's ledger isn't kept loaded: the report reads the whole note on demand.
+        val week = weeks.fullNote(weekId)?.events.orEmpty()
         val earned = week.filter { it.delta > 0 }.sumOf { it.delta }
         val spent = week.filter { it.delta < 0 }.sumOf { it.delta }
         return WeeklyReport(
@@ -278,8 +327,8 @@ class MarkdownPointsLedgerRepository(private val weeks: MarkdownWeekStore) : Poi
             earned = earned,
             spent = spent,
             net = earned + spent,
-            // The balance as the week closed, not today's: weekIds sort chronologically.
-            endingBalance = allEvents(notes.filterKeys { it <= weekId }).sumOf { it.delta },
+            // The balance as the week ended, not today's.
+            endingBalance = weekPoints(weeks.snapshot())[weekId]?.end ?: 0,
         )
     }
 }
@@ -289,7 +338,8 @@ class MarkdownWeeklyReviewRepository(private val weeks: MarkdownWeekStore) : Wee
     override fun observeReview(weekId: String): Flow<WeeklyReview?> =
         weeks.observeNotes().map { it[weekId]?.review }
 
-    override suspend fun getReview(weekId: String): WeeklyReview? = weeks.snapshot()[weekId]?.review
+    // The full note: a closed week keeps its journal in the body, which is only read on demand.
+    override suspend fun getReview(weekId: String): WeeklyReview? = weeks.fullNote(weekId)?.review
 
     override suspend fun upsert(review: WeeklyReview) =
         weeks.updateWeek(review.weekId) { it.copy(review = review) }
@@ -301,7 +351,7 @@ class MarkdownWeeklyReviewRepository(private val weeks: MarkdownWeekStore) : Wee
         ?.weekId
 }
 
-/** Keeps the health sync's daily values in the week note's `health` frontmatter field. */
+/** Keeps the health sync's daily values in the week note's `## Health` section. */
 class MarkdownHealthLogRepository(private val weeks: MarkdownWeekStore) : HealthLogRepository {
 
     override fun observeWeek(weekId: String): Flow<List<DailyHealth>> =

@@ -81,7 +81,7 @@ class WeekStoreMigrationTest {
             WeeklyReview("2026-W26", journal = "Semana boa.", submittedAt = Instant.parse("2026-06-28T18:00:00Z")),
         )
 
-        val store = MarkdownWeekStore(vault)
+        val store = MarkdownWeekStore(vault, fixedWeekCalculator())
         val note = store.snapshot().getValue("2026-W26")
 
         assertEquals(listOf("L-1"), note.events.map { it.id })
@@ -94,10 +94,10 @@ class WeekStoreMigrationTest {
         assertEquals(note, onDisk)
 
         // The migrated data survives a relaunch and feeds the derived balance.
-        assertEquals(5, MarkdownPointsLedgerRepository(MarkdownWeekStore(vault)).currentBalance())
+        assertEquals(5, MarkdownPointsLedgerRepository(MarkdownWeekStore(vault, fixedWeekCalculator())).currentBalance())
         assertEquals(
             "2026-W26",
-            MarkdownWeeklyReviewRepository(MarkdownWeekStore(vault)).lastSubmittedWeekId(),
+            MarkdownWeeklyReviewRepository(MarkdownWeekStore(vault, fixedWeekCalculator())).lastSubmittedWeekId(),
         )
     }
 
@@ -118,7 +118,7 @@ class WeekStoreMigrationTest {
         vault.files["reviews/2026-W26.md"] =
             MarkdownCodecs.encodeReview(WeeklyReview("2026-W26", journal = "Old journal"))
 
-        val note = MarkdownWeekStore(vault).snapshot().getValue("2026-W26")
+        val note = MarkdownWeekStore(vault, fixedWeekCalculator()).snapshot().getValue("2026-W26")
 
         assertEquals(listOf("L-1", "L-2"), note.events.map { it.id }) // L-1 not duplicated
         assertEquals(7, note.events.sumOf { it.delta })
@@ -134,7 +134,7 @@ class WeekFileReviewFlowTest : MainDispatcherTest() {
     @Test
     fun homeShowsReviewCtaOnlyWhileTheWeekFileIsMissing() = runTest {
         val vault = FakeVaultFileSystem()
-        val store = MarkdownWeekStore(vault)
+        val store = MarkdownWeekStore(vault, fixedWeekCalculator())
         val tasks = MarkdownTaskRepository(vault, store)
         val ledger = MarkdownPointsLedgerRepository(store)
         val task = Task("t-1", "Meditate", 5)
@@ -168,7 +168,7 @@ class WeekFileReviewFlowTest : MainDispatcherTest() {
     @Test
     fun submittingTheReviewUpdatesThePreviousWeekFileAndCreatesTheNewOne() = runTest {
         val vault = FakeVaultFileSystem()
-        val store = MarkdownWeekStore(vault)
+        val store = MarkdownWeekStore(vault, fixedWeekCalculator())
         val tasks = MarkdownTaskRepository(vault, store)
         tasks.upsert(Task("t-1", "Meditate", 5))
 

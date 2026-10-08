@@ -90,6 +90,11 @@ data class Task(
      * completes the task by itself on the days the goal is met; null for a manually tracked task.
      */
     val healthGoal: HealthGoal? = null,
+    /**
+     * The day a [Recurrence.ADHOC] task was checked off — done for good. Kept on the task itself
+     * because the week note it was completed in is eventually closed and no longer read in full.
+     */
+    val doneOn: LocalDate? = null,
 ) {
     /** Whether the task belongs in a "today" list on the given weekday. */
     fun isDueOn(dayOfWeek: DayOfWeek): Boolean = when (recurrence) {
@@ -190,6 +195,8 @@ data class TaskInstance(
      * habits are charged exactly for the days that are missing here.
      */
     val completedDates: List<LocalDate> = emptyList(),
+    /** The task's title when the instance was last written; the alias of its link in the week note. */
+    val taskTitle: String = "",
 )
 
 /**
@@ -220,9 +227,14 @@ data class PointsEvent(
     val weekId: String,
     val source: PointsSource,
     val refId: String,
+    /** The name of what the entry refers to (task title, penalty or reward name, objective title). */
     val label: String,
     val delta: Int,
 )
+
+/** [PointsEvent.label] for display: a missed habit day also names the day it is charged for. */
+val PointsEvent.displayLabel: String
+    get() = if (source == PointsSource.HABIT_MISS && '@' in refId) "$label (${refId.substringAfter('@')})" else label
 
 /** A weekly review. [submittedAt] is null while the review is still a draft. */
 data class WeeklyReview(

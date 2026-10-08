@@ -54,7 +54,8 @@ class CompleteTaskUseCase(
         val day = on ?: now.toLocalDateTime(timeZone).date
         tasks.setCompleted(task.id, weekId, nowCompleted, day)
         val delta = if (nowCompleted) task.points else -task.points
-        val label = (if (nowCompleted) "Concluída: " else "Desfeita: ") + task.title
+        // The label is what the entry is about; the sign of the delta tells a completion from an undo.
+        val label = task.title
         ledger.append(
             PointsEvent(newId("L"), now, weekId, PointsSource.TASK, task.id, label, delta),
         )
@@ -73,7 +74,7 @@ class AchieveObjectiveUseCase(
         val today = now.toLocalDateTime(timeZone).date
         theme.setObjectiveAchieved(objective.id, nowAchieved, today)
         val delta = if (nowAchieved) objective.points else -objective.points
-        val label = (if (nowAchieved) "Objetivo alcançado: " else "Objetivo revertido: ") + objective.title
+        val label = objective.title
         ledger.append(
             PointsEvent(newId("L"), now, weekId, PointsSource.OBJECTIVE, objective.id, label, delta),
         )
@@ -89,7 +90,7 @@ class ApplyPenaltyUseCase(
         ledger.append(
             PointsEvent(
                 newId("L"), clock.now(), weekId, PointsSource.PENALTY, penalty.id,
-                "Penalidade: ${penalty.name}", -penalty.pointCost,
+                penalty.name, -penalty.pointCost,
             ),
         )
     }
@@ -239,7 +240,8 @@ class SyncHealthUseCase(
  *
  * - today, which isn't over yet (the user still has until the end of the day);
  * - days before the habit's [Task.habitSince], so adding a habit can't bill the weeks before it;
- * - days the habit was completed on, read from [TaskInstance.completedDates].
+ * - days the habit was completed on, read from [TaskInstance.completedDates];
+ * - days of a closed week (see [PointsLedgerRepository.isWeekClosed]), which are settled history.
  *
  * Inactive habits are skipped: pausing a habit stops the charges from the day it is switched off.
  */
@@ -262,6 +264,8 @@ class PenalizeMissedHabitsUseCase(
         for (weeksAgo in (weeksBack - 1) downTo 0) {
             val monday = thisMonday.minus(weeksAgo * 7, DateTimeUnit.DAY)
             val weekId = weekCalculator.weekId(monday)
+            // A closed week is settled: its instances are no longer loaded, and its points are fixed.
+            if (ledger.isWeekClosed(weekId)) continue
             val instances = tasks.observeInstances(weekId).first().associateBy { it.taskId }
             val alreadyCharged = ledger.eventsForWeek(weekId)
                 .filter { it.source == PointsSource.HABIT_MISS }
@@ -283,7 +287,7 @@ class PenalizeMissedHabitsUseCase(
                             weekId = weekId,
                             source = PointsSource.HABIT_MISS,
                             refId = refId,
-                            label = "Hábito não cumprido: ${habit.title} ($day)",
+                            label = habit.title,
                             delta = -habit.points,
                         ),
                     )
@@ -318,7 +322,7 @@ class RedeemRewardUseCase(
         ledger.append(
             PointsEvent(
                 newId("L"), clock.now(), weekId, PointsSource.REWARD, reward.id,
-                "Resgate: ${reward.name}", -reward.pointCost,
+                reward.name, -reward.pointCost,
             ),
         )
         // Touch the repository so a Markdown-backed impl can stamp redeemed_on later.

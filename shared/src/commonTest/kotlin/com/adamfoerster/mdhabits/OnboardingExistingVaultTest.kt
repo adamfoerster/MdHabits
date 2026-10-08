@@ -33,7 +33,7 @@ class OnboardingExistingVaultTest : MainDispatcherTest() {
     ) = OnboardingViewModel(
         MarkdownValueRepository(vault),
         MarkdownThemeRepository(vault),
-        MarkdownTaskRepository(vault, MarkdownWeekStore(vault)),
+        MarkdownTaskRepository(vault, MarkdownWeekStore(vault, fixedWeekCalculator())),
         MarkdownPenaltyRepository(vault),
         MarkdownRewardRepository(vault),
         settings,

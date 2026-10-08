@@ -34,9 +34,9 @@ class MarkdownRepositoriesTest {
     private val date = LocalDate(2026, 7, 2)
 
     // Fresh store per repository, so building a second repository simulates an app relaunch.
-    private fun taskRepo() = MarkdownTaskRepository(vault, MarkdownWeekStore(vault))
-    private fun ledgerRepo() = MarkdownPointsLedgerRepository(MarkdownWeekStore(vault))
-    private fun reviewRepo() = MarkdownWeeklyReviewRepository(MarkdownWeekStore(vault))
+    private fun taskRepo() = MarkdownTaskRepository(vault, MarkdownWeekStore(vault, fixedWeekCalculator()))
+    private fun ledgerRepo() = MarkdownPointsLedgerRepository(MarkdownWeekStore(vault, fixedWeekCalculator()))
+    private fun reviewRepo() = MarkdownWeeklyReviewRepository(MarkdownWeekStore(vault, fixedWeekCalculator()))
 
     @Test
     fun valuesPersistAcrossRepositoryInstances() = runTest {

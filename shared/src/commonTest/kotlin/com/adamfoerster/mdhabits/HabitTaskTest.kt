@@ -78,11 +78,11 @@ class HabitCodecTest {
             WeekNote(
                 weekId = "2026-W27",
                 instances = listOf(
-                    TaskInstance("t1", "2026-W27", completed = true, completedOn = thisMonday),
+                    TaskInstance("t1", "2026-W27", completed = true, completedOn = thisMonday, completedDates = listOf(thisMonday)),
                 ),
             ),
         )
-        val legacy = current.replace(Regex(""",\s*"dates":\s*\[[^]]*]"""), "")
+        val legacy = current.replace(Regex("""\| \["[^]]*]"""), "| []")
         assertTrue(legacy != current, "the encoder stopped writing a per-day list")
         val decoded = MarkdownCodecs.decodeWeekNote(legacy)
         assertEquals(listOf(thisMonday), decoded?.instances?.single()?.completedDates)
@@ -268,7 +268,7 @@ class HabitOnHomeTest : MainDispatcherTest() {
     @Test
     fun chargingMissedDaysDoesNotCountAsStartingTheWeek() = runTest {
         val vault = FakeVaultFileSystem()
-        val store = MarkdownWeekStore(vault)
+        val store = MarkdownWeekStore(vault, fixedWeekCalculator())
         val tasks = MarkdownTaskRepository(vault, store)
         val ledger = MarkdownPointsLedgerRepository(store)
         tasks.upsert(habit(since = LocalDate(2026, 6, 30)))

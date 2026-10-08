@@ -37,6 +37,36 @@ make them pass, update the release notes, bump the version) are documented in
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
 
+### 0.18.0 — Readable week notes that close themselves
+
+- **New week note format.** Task instances and health values moved out of the frontmatter into
+  `## Health` and `## Instances` sections of the note body, next to `## Ledger`. Instances are
+  checklist items and every instance and ledger entry links to its task, penalty, reward or theme
+  note (`[[MdHabits/tasks/…|Orar]]`), so a week reads naturally in Obsidian. Ledger entries now
+  carry the name of what they refer to instead of a sentence ("Orar" rather than "Concluída: Orar").
+  Older notes are not read anymore: the vault was converted once.
+- **Points checkpoints.** Each week records `pointsAtWeekStart`, kept up to date while the week is
+  open. More than 7 days after a week ends, MdHabits closes it: it writes `pointsAtWeekEnd`, marks
+  `closed: true`, and from then on reads only its frontmatter — the balance builds on that
+  checkpoint instead of re-adding the whole history, and a closed week is never written again. The
+  report of a past week still shows everything, reading the closed note on demand.
+- Missed habit days are charged only in weeks that are still open, and a completed ad-hoc task is
+  now stamped on the task itself (`done_on`), so it stays done after its week closes.
+
+### 0.17.0 — Live sync with your vault
+
+- **Changes from other devices show up while the app is open.** MdHabits now watches the vault
+  folder while it is in the foreground and reloads any note that changed on disk — e.g. a task
+  checked off on another device and synced by Syncthing, or a note edited in Obsidian. It keeps
+  each note's last-modified time in memory and reloads a note whenever that time changes, so an
+  edit to an old week is picked up too (even when the sync tool carries over an older timestamp).
+  Notes deleted elsewhere disappear; a note left broken by a manual edit keeps its last good
+  version until it is fixed.
+- **Syncthing conflict copies are ignored.** When both devices changed the same note, Syncthing
+  keeps the losing version beside it as `….sync-conflict-….md`; MdHabits used to read that copy as
+  the same week and could show its stale state instead of the real note. Week notes are now only
+  read from their own `<week>.md` file.
+
 ### 0.16.0 — Delete tasks, task filters and a cleaner list
 
 - **Delete a task.** Open a task on the task management screen and tap "Delete task" (it asks to
