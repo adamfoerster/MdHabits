@@ -37,6 +37,19 @@ make them pass, update the release notes, bump the version) are documented in
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
 
+### 0.19.0 — Task reminders and a calmer task form
+
+- **Reminders.** A daily task, habit or days-of-week task can now notify you at a time you choose
+  (Android and iOS). Switch on *Reminder* in the task form and set the hour; it fires on the days
+  the task is due. On Android, a task you already did today doesn't notify again until its next due
+  day (iOS repeats weekly and can't skip today). Android asks for notification permission the first
+  time you turn a reminder on. The time is saved in the task note as `reminder: "08:30"`, and the
+  task list shows it next to the frequency.
+- **New task form.** The wall of pills is gone: frequency is a short list with a hint for the chosen
+  option, weekdays are round day toggles, health goal and the target comparison are segmented
+  controls, and the health goal and value/objective links live in a collapsed *More options* card
+  (checkable rows instead of pills) that summarises what is set.
+
 ### 0.18.0 — Readable week notes that close themselves
 
 - **New week note format.** Task instances and health values moved out of the frontmatter into

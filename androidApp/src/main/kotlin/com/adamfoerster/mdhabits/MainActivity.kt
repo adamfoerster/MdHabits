@@ -1,5 +1,6 @@
 package com.adamfoerster.mdhabits
 
+import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.health.connect.client.PermissionController
 import com.adamfoerster.mdhabits.di.initKoinOnce
 import com.adamfoerster.mdhabits.platform.AndroidHealthBridge
+import com.adamfoerster.mdhabits.platform.AndroidNotificationBridge
 import com.adamfoerster.mdhabits.platform.AndroidVaultBridge
 
 class MainActivity : ComponentActivity() {
@@ -21,6 +23,11 @@ class MainActivity : ComponentActivity() {
             AndroidHealthBridge.onPermissionsResult(granted)
         }
 
+    private val requestNotifications =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            AndroidNotificationBridge.onPermissionResult(granted)
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -28,6 +35,9 @@ class MainActivity : ComponentActivity() {
         AndroidVaultBridge.appContext = applicationContext
         AndroidVaultBridge.launchTreePicker = { pickFolder.launch(null) }
         AndroidHealthBridge.launchPermissionRequest = { requestHealthPermissions.launch(it) }
+        AndroidNotificationBridge.launchPermissionRequest = {
+            requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
         initKoinOnce()
 
         setContent {

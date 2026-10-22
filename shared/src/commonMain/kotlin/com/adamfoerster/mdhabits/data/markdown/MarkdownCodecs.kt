@@ -11,6 +11,7 @@ import com.adamfoerster.mdhabits.domain.model.PersonalValue
 import com.adamfoerster.mdhabits.domain.model.PointsEvent
 import com.adamfoerster.mdhabits.domain.model.PointsSource
 import com.adamfoerster.mdhabits.domain.model.Recurrence
+import com.adamfoerster.mdhabits.domain.model.ReminderTime
 import com.adamfoerster.mdhabits.domain.model.Reward
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.model.TaskInstance
@@ -122,6 +123,7 @@ object MarkdownCodecs {
                 task.habitSince?.let { put("habit_since", JsonPrimitive(it.toString())) }
                 task.healthGoal?.let { put("health_goal", encodeHealthGoal(it)) }
                 task.doneOn?.let { put("done_on", JsonPrimitive(it.toString())) }
+                task.reminder?.let { put("reminder", JsonPrimitive(it.toString())) }
             },
         ),
     )
@@ -140,6 +142,7 @@ object MarkdownCodecs {
             habitSince = doc.string("habit_since")?.toLocalDateOrNull(),
             healthGoal = (doc.fields["health_goal"] as? JsonObject)?.let { decodeHealthGoal(it) },
             doneOn = doc.string("done_on")?.toLocalDateOrNull(),
+            reminder = doc.string("reminder")?.let { ReminderTime.parseOrNull(it) },
         )
     }
 

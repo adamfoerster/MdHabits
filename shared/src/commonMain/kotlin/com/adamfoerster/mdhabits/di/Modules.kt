@@ -29,6 +29,7 @@ import com.adamfoerster.mdhabits.domain.usecase.ApplyPenaltyUseCase
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
 import com.adamfoerster.mdhabits.domain.usecase.PenalizeMissedHabitsUseCase
 import com.adamfoerster.mdhabits.domain.usecase.RedeemRewardUseCase
+import com.adamfoerster.mdhabits.domain.usecase.ReminderSyncer
 import com.adamfoerster.mdhabits.domain.usecase.SyncHealthUseCase
 import com.adamfoerster.mdhabits.domain.usecase.SyncMdPrayerUseCase
 import com.adamfoerster.mdhabits.storage.VaultMigrator
@@ -50,7 +51,8 @@ import org.koin.dsl.module
 /** Platform-provided bindings: [com.adamfoerster.mdhabits.core.settings.AppSettings],
  *  [com.adamfoerster.mdhabits.storage.VaultPicker],
  *  [com.adamfoerster.mdhabits.storage.VaultFileSystem], and
- *  [com.adamfoerster.mdhabits.domain.repository.HealthDataSource]. */
+ *  [com.adamfoerster.mdhabits.domain.repository.HealthDataSource], and
+ *  [com.adamfoerster.mdhabits.domain.repository.ReminderScheduler]. */
 expect fun platformModule(): Module
 
 val dataModule = module {
@@ -95,6 +97,7 @@ val domainModule = module {
     factory { SyncMdPrayerUseCase(get(), get(), get(), get(), get()) }
     factory { PenalizeMissedHabitsUseCase(get(), get(), get()) }
     factory { SyncHealthUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { ReminderSyncer(get(), get(), get(), get()) }
 }
 
 val viewModelModule = module {

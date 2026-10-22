@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,8 +30,10 @@ import com.adamfoerster.mdhabits.domain.model.HealthComparison
 import com.adamfoerster.mdhabits.domain.model.HealthGoal
 import com.adamfoerster.mdhabits.domain.model.HealthMetric
 import com.adamfoerster.mdhabits.domain.model.Recurrence
+import com.adamfoerster.mdhabits.domain.model.ReminderTime
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.ui.theme.Paper
+import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.isoDayNumber
 import kotlin.math.roundToLong
@@ -49,21 +52,30 @@ data class EntityFormInitial(
     val daysOfWeek: List<DayOfWeek> = emptyList(),
     val linkIds: List<String> = emptyList(),
     val healthGoal: HealthGoal? = null,
+    val reminder: ReminderTime? = null,
 )
 
+/** Whether a task with this frequency is due on particular days, and so can have a reminder. */
+private val Recurrence.canRemind: Boolean
+    get() = this == Recurrence.DAILY || this == Recurrence.HABIT || this == Recurrence.DAYS_OF_WEEK
+
 /**
- * The design's "form mode" bottom sheet — name, optional points, optional frequency and
- * optional value/objective links, ending in a dark save button. With [initial] the sheet
- * edits an existing entity instead of creating one. [healthSupported] adds the task's optional
- * health goal (only where the platform has a health store).
+ * The design's "form mode" bottom sheet — name, optional points, and for a task a "When" card
+ * (frequency, weekdays), a reminder card and a collapsed "More options" card (health goal, value and
+ * objective links), ending in a dark save button. With [initial] the sheet edits an existing entity
+ * instead of creating one. [healthSupported] adds the task's optional health goal and
+ * [remindersSupported] its reminder (each only where the platform has the matching service);
+ * [onRequestReminderPermission] is awaited when the reminder is switched on and returns whether
+ * notifications are allowed.
  */
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun EntityFormSheet(
     kind: EntityKind,
     initial: EntityFormInitial? = null,
     linkOptions: List<LinkOption> = emptyList(),
     healthSupported: Boolean = false,
+    remindersSupported: Boolean = false,
+    onRequestReminderPermission: suspend () -> Boolean = { true },
     onDismiss: () -> Unit,
     onDelete: (() -> Unit)? = null,
     onSave: (
@@ -73,6 +85,7 @@ fun EntityFormSheet(
         daysOfWeek: List<DayOfWeek>,
         linkIds: List<String>,
         healthGoal: HealthGoal?,
+        reminder: ReminderTime?,
     ) -> Unit,
 ) {
     val strings = LocalStrings.current
@@ -86,6 +99,7 @@ fun EntityFormSheet(
     val title = if (initial != null) texts.editTitle else texts.title
     val ptsLabel = texts.pointsLabel
     val isTask = kind == EntityKind.TASK
+    val scope = rememberCoroutineScope()
 
     var confirmingDelete by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf(initial?.name ?: "") }
@@ -99,6 +113,11 @@ fun EntityFormSheet(
     }
     var healthTarget by remember { mutableStateOf(initial?.healthGoal?.let { formTarget(it) } ?: "") }
     val healthGoal = healthMetric?.let { parseHealthGoal(it, healthComparison, healthTarget) }
+    var reminder by remember { mutableStateOf(initial?.reminder) }
+    var reminderDenied by remember { mutableStateOf(false) }
+    var moreExpanded by remember {
+        mutableStateOf(initial != null && (initial.healthGoal != null || initial.linkIds.isNotEmpty()))
+    }
 
     PaperSheet(title = title, subtitle = texts.subtitle, onDismiss = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -118,61 +137,83 @@ fun EntityFormSheet(
                 }
             }
             if (isTask) {
-                Column {
-                    SectionLabel(strings.frequency, Modifier.padding(bottom = 7.dp))
-                    androidx.compose.foundation.layout.FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(7.dp),
-                        verticalArrangement = Arrangement.spacedBy(7.dp),
-                    ) {
-                        val options = listOf(
-                            strings.recurDaily to Recurrence.DAILY,
-                            strings.recurHabit to Recurrence.HABIT,
-                            strings.recurWeekly to Recurrence.WEEKLY,
-                            strings.recurDaysOfWeek to Recurrence.DAYS_OF_WEEK,
-                            strings.recurAdhoc to Recurrence.ADHOC,
-                        )
-                        options.forEach { (label, option) ->
-                            SelectChip(label = label, selected = recurrence == option) { recurrence = option }
+                FormCard(title = strings.formSectionWhen) {
+                    val options = listOf(
+                        Triple(Recurrence.DAILY, strings.recurDaily, strings.recurDailyHint),
+                        Triple(Recurrence.HABIT, strings.recurHabit, strings.recurHabitHint),
+                        Triple(Recurrence.DAYS_OF_WEEK, strings.recurDaysOfWeek, strings.recurDaysOfWeekHint),
+                        Triple(Recurrence.WEEKLY, strings.recurWeekly, strings.recurWeeklyHint),
+                        Triple(Recurrence.ADHOC, strings.recurAdhoc, strings.recurAdhocHint),
+                    )
+                    options.forEach { (option, label, hint) ->
+                        RadioRow(label = label, selected = recurrence == option, hint = hint) {
+                            recurrence = option
                         }
                     }
-                    if (recurrence == Recurrence.HABIT) {
-                        Text(
-                            strings.recurHabitHint,
-                            Modifier.padding(top = 7.dp),
-                            style = sansStyle(11.5.sp, Paper.muted),
-                        )
-                    }
                     if (recurrence == Recurrence.DAYS_OF_WEEK) {
-                        androidx.compose.foundation.layout.FlowRow(
-                            Modifier.padding(top = 7.dp),
-                            horizontalArrangement = Arrangement.spacedBy(7.dp),
-                            verticalArrangement = Arrangement.spacedBy(7.dp),
-                        ) {
-                            (1..7).forEach { iso ->
-                                val day = DayOfWeek(iso)
-                                SelectChip(
-                                    label = strings.daysShort[iso - 1],
-                                    selected = day in daysOfWeek,
-                                ) {
-                                    daysOfWeek =
-                                        if (day in daysOfWeek) daysOfWeek - day else daysOfWeek + day
+                        DayCircles(
+                            labels = strings.daysShort,
+                            selected = daysOfWeek.mapTo(mutableSetOf()) { it.isoDayNumber - 1 },
+                        ) { index ->
+                            val day = DayOfWeek(index + 1)
+                            daysOfWeek = if (day in daysOfWeek) daysOfWeek - day else daysOfWeek + day
+                        }
+                    }
+                }
+                if (remindersSupported) {
+                    FormCard(title = strings.reminderLabel) {
+                        if (!recurrence.canRemind) {
+                            Text(strings.reminderUnavailable, style = sansStyle(13.sp, Paper.muted))
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    reminder?.let { strings.reminderTime(it.toString()) } ?: strings.reminderOff,
+                                    Modifier.weight(1f),
+                                    style = sansStyle(15.sp, Paper.ink, FontWeight.SemiBold),
+                                )
+                                PaperSwitch(checked = reminder != null) { on ->
+                                    if (!on) {
+                                        reminder = null
+                                        reminderDenied = false
+                                    } else {
+                                        scope.launch {
+                                            if (onRequestReminderPermission()) {
+                                                reminder = ReminderTime.DEFAULT
+                                                reminderDenied = false
+                                            } else {
+                                                reminderDenied = true
+                                            }
+                                        }
+                                    }
                                 }
+                            }
+                            reminder?.let { time ->
+                                TimeStepper(time, onChange = { reminder = it })
+                                Text(strings.reminderHint, style = sansStyle(11.5.sp, Paper.muted))
+                            }
+                            if (reminderDenied) {
+                                Text(strings.reminderDenied, style = sansStyle(12.sp, Paper.danger))
                             }
                         }
                     }
                 }
-                if (healthSupported) {
-                    Column {
-                        SectionLabel(strings.healthGoal, Modifier.padding(bottom = 7.dp))
-                        androidx.compose.foundation.layout.FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(7.dp),
-                            verticalArrangement = Arrangement.spacedBy(7.dp),
-                        ) {
-                            SelectChip(label = strings.healthGoalNone, selected = healthMetric == null) {
-                                healthMetric = null
-                            }
-                            HealthMetric.entries.forEach { metric ->
-                                SelectChip(label = strings.healthMetricName(metric), selected = healthMetric == metric) {
+                if (healthSupported || linkOptions.isNotEmpty()) {
+                    val summary = buildList {
+                        healthMetric?.let { add(strings.healthMetricName(it)) }
+                        addAll(linkOptions.filter { it.id in linkIds }.map { it.label })
+                    }.joinToString(" · ").ifEmpty { strings.linksNone }
+                    ExpandableSection(
+                        title = strings.formSectionMore,
+                        summary = summary,
+                        expanded = moreExpanded,
+                        onToggle = { moreExpanded = !moreExpanded },
+                    ) {
+                        if (healthSupported) {
+                            HealthGoalFields(
+                                metric = healthMetric,
+                                comparison = healthComparison,
+                                target = healthTarget,
+                                onMetric = { metric ->
                                     if (healthMetric != metric) {
                                         healthMetric = metric
                                         // Weight goals are usually a ceiling; steps and sleep, a floor.
@@ -183,64 +224,19 @@ fun EntityFormSheet(
                                         }
                                         healthTarget = ""
                                     }
+                                },
+                                onComparison = { healthComparison = it },
+                                onTarget = { healthTarget = it },
+                            )
+                        }
+                        if (linkOptions.isNotEmpty()) {
+                            SectionLabel(strings.linkLabel)
+                            linkOptions.forEach { option ->
+                                CheckRow(option.label, option.id in linkIds) {
+                                    linkIds = if (option.id in linkIds) linkIds - option.id else linkIds + option.id
                                 }
                             }
                         }
-                        healthMetric?.let { metric ->
-                            Row(Modifier.padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                                SelectChip(
-                                    label = strings.healthAtLeast,
-                                    selected = healthComparison == HealthComparison.AT_LEAST,
-                                ) { healthComparison = HealthComparison.AT_LEAST }
-                                SelectChip(
-                                    label = strings.healthAtMost,
-                                    selected = healthComparison == HealthComparison.AT_MOST,
-                                ) { healthComparison = HealthComparison.AT_MOST }
-                            }
-                            SectionLabel(
-                                when (metric) {
-                                    HealthMetric.STEPS -> strings.healthTargetSteps
-                                    HealthMetric.SLEEP -> strings.healthTargetSleep
-                                    HealthMetric.WEIGHT -> strings.healthTargetWeight
-                                },
-                                Modifier.padding(top = 10.dp, bottom = 5.dp),
-                            )
-                            PaperTextField(
-                                value = healthTarget,
-                                onValueChange = { new ->
-                                    healthTarget = if (metric == HealthMetric.STEPS) {
-                                        new.filter { it.isDigit() }
-                                    } else {
-                                        new.filter { it.isDigit() || it == '.' || it == ',' }
-                                    }
-                                },
-                                placeholder = when (metric) {
-                                    HealthMetric.STEPS -> "8000"
-                                    HealthMetric.SLEEP -> "7.5"
-                                    HealthMetric.WEIGHT -> "80"
-                                },
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = if (metric == HealthMetric.STEPS) KeyboardType.Number else KeyboardType.Decimal,
-                                ),
-                            )
-                            Text(
-                                strings.healthGoalHint,
-                                Modifier.padding(top = 7.dp),
-                                style = sansStyle(11.5.sp, Paper.muted),
-                            )
-                        }
-                    }
-                }
-                if (linkOptions.isNotEmpty()) {
-                    Column {
-                        SectionLabel(strings.linkLabel, Modifier.padding(bottom = 7.dp))
-                        FlowChips(
-                            options = linkOptions,
-                            selectedIds = linkIds,
-                            onToggle = { id ->
-                                linkIds = if (id in linkIds) linkIds - id else linkIds + id
-                            },
-                        )
                     }
                 }
             }
@@ -258,7 +254,17 @@ fun EntityFormSheet(
                 } else {
                     emptyList()
                 }
-                onSave(name.trim(), points.toIntOrNull() ?: 0, recurrence, days, linkIds, healthGoal.takeIf { isTask })
+                val savedReminder = when {
+                    !isTask -> null
+                    // Without reminder support the form can't show it; keep what the note already says.
+                    !remindersSupported -> initial?.reminder
+                    recurrence.canRemind -> reminder
+                    else -> null
+                }
+                onSave(
+                    name.trim(), points.toIntOrNull() ?: 0, recurrence, days, linkIds,
+                    healthGoal.takeIf { isTask }, savedReminder,
+                )
             }
             if (onDelete != null) {
                 if (confirmingDelete) {
@@ -290,6 +296,59 @@ fun EntityFormSheet(
     }
 }
 
+/** The optional health goal: a metric (or none), whether the target is a floor or a ceiling, and the target. */
+@Composable
+private fun HealthGoalFields(
+    metric: HealthMetric?,
+    comparison: HealthComparison,
+    target: String,
+    onMetric: (HealthMetric?) -> Unit,
+    onComparison: (HealthComparison) -> Unit,
+    onTarget: (String) -> Unit,
+) {
+    val strings = LocalStrings.current
+    SectionLabel(strings.healthGoal)
+    val metrics = HealthMetric.entries
+    SegmentedControl(
+        options = listOf(strings.healthGoalNone) + metrics.map { strings.healthMetricName(it) },
+        selectedIndex = metric?.let { metrics.indexOf(it) + 1 } ?: 0,
+    ) { index -> onMetric(metrics.getOrNull(index - 1)) }
+    if (metric != null) {
+        SegmentedControl(
+            options = listOf(strings.healthAtLeast, strings.healthAtMost),
+            selectedIndex = if (comparison == HealthComparison.AT_LEAST) 0 else 1,
+        ) { onComparison(if (it == 0) HealthComparison.AT_LEAST else HealthComparison.AT_MOST) }
+        SectionLabel(
+            when (metric) {
+                HealthMetric.STEPS -> strings.healthTargetSteps
+                HealthMetric.SLEEP -> strings.healthTargetSleep
+                HealthMetric.WEIGHT -> strings.healthTargetWeight
+            },
+        )
+        PaperTextField(
+            value = target,
+            onValueChange = { new ->
+                onTarget(
+                    if (metric == HealthMetric.STEPS) {
+                        new.filter { it.isDigit() }
+                    } else {
+                        new.filter { it.isDigit() || it == '.' || it == ',' }
+                    },
+                )
+            },
+            placeholder = when (metric) {
+                HealthMetric.STEPS -> "8000"
+                HealthMetric.SLEEP -> "7.5"
+                HealthMetric.WEIGHT -> "80"
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = if (metric == HealthMetric.STEPS) KeyboardType.Number else KeyboardType.Decimal,
+            ),
+        )
+        Text(strings.healthGoalHint, style = sansStyle(11.5.sp, Paper.muted))
+    }
+}
+
 /**
  * The goal typed in the form, or null while the target isn't a positive number. Sleep is typed in
  * hours (people think "7.5 hours", not "450 minutes") and stored in minutes.
@@ -312,23 +371,6 @@ private data class FormTexts(
     val namePh: String,
     val pointsLabel: String?,
 )
-
-/** Wrapping row of selectable pills for value/objective links. */
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-@Composable
-private fun FlowChips(options: List<LinkOption>, selectedIds: List<String>, onToggle: (String) -> Unit) {
-    androidx.compose.foundation.layout.FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(7.dp),
-        verticalArrangement = Arrangement.spacedBy(7.dp),
-    ) {
-        options.forEach { option ->
-            SelectChip(
-                label = option.label,
-                selected = option.id in selectedIds,
-            ) { onToggle(option.id) }
-        }
-    }
-}
 
 /** Single-select sheet: tap a task to link it (e.g. to the mdPrayer integration in Settings). */
 @Composable

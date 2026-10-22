@@ -10,6 +10,7 @@ import com.adamfoerster.mdhabits.domain.model.Objective
 import com.adamfoerster.mdhabits.domain.model.Penalty
 import com.adamfoerster.mdhabits.domain.model.PersonalValue
 import com.adamfoerster.mdhabits.domain.model.Recurrence
+import com.adamfoerster.mdhabits.domain.model.ReminderTime
 import com.adamfoerster.mdhabits.domain.model.Reward
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.model.stampHabitSince
@@ -101,6 +102,7 @@ class RegisterViewModel(
         valueIds: List<String> = emptyList(),
         objectiveIds: List<String> = emptyList(),
         healthGoal: HealthGoal? = null,
+        reminder: ReminderTime? = null,
     ) = viewModelScope.launch {
         taskRepository.upsert(
             Task(
@@ -112,6 +114,7 @@ class RegisterViewModel(
                 linkedValueIds = valueIds,
                 linkedObjectiveIds = objectiveIds,
                 healthGoal = healthGoal,
+                reminder = reminder,
             ).stampHabitSince(weekCalculator.today()),
         )
     }
@@ -152,6 +155,7 @@ class RegisterViewModel(
         valueIds: List<String> = emptyList(),
         objectiveIds: List<String> = emptyList(),
         healthGoal: HealthGoal? = null,
+        reminder: ReminderTime? = null,
     ) = viewModelScope.launch {
         val existing = taskRepository.getTask(id) ?: return@launch
         taskRepository.upsert(
@@ -163,6 +167,7 @@ class RegisterViewModel(
                 linkedValueIds = valueIds,
                 linkedObjectiveIds = objectiveIds,
                 healthGoal = healthGoal,
+                reminder = reminder,
             ).stampHabitSince(weekCalculator.today()),
         )
     }

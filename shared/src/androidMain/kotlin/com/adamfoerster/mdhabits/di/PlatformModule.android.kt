@@ -3,6 +3,8 @@ package com.adamfoerster.mdhabits.di
 import com.adamfoerster.mdhabits.core.platform.AppInfo
 import com.adamfoerster.mdhabits.core.settings.AppSettings
 import com.adamfoerster.mdhabits.domain.repository.HealthDataSource
+import com.adamfoerster.mdhabits.domain.repository.ReminderScheduler
+import com.adamfoerster.mdhabits.platform.AndroidReminderScheduler
 import com.adamfoerster.mdhabits.platform.AndroidAppInfo
 import com.adamfoerster.mdhabits.platform.AndroidAppSettings
 import com.adamfoerster.mdhabits.platform.AndroidHealthConnectSource
@@ -28,6 +30,11 @@ actual fun platformModule(): Module = module {
     single<VaultPicker> { AndroidVaultPicker() }
     single<HealthDataSource> {
         AndroidHealthConnectSource(
+            requireNotNull(AndroidVaultBridge.appContext) { "AndroidVaultBridge.appContext not set" },
+        )
+    }
+    single<ReminderScheduler> {
+        AndroidReminderScheduler(
             requireNotNull(AndroidVaultBridge.appContext) { "AndroidVaultBridge.appContext not set" },
         )
     }

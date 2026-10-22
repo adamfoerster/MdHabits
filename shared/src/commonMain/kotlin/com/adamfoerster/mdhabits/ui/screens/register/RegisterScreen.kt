@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.adamfoerster.mdhabits.core.i18n.LocalStrings
 import com.adamfoerster.mdhabits.core.i18n.Strings
 import com.adamfoerster.mdhabits.domain.repository.HealthDataSource
+import com.adamfoerster.mdhabits.domain.repository.ReminderScheduler
 import com.adamfoerster.mdhabits.ui.components.EntityFormInitial
 import com.adamfoerster.mdhabits.ui.components.EntityFormSheet
 import com.adamfoerster.mdhabits.ui.components.EntityKind
@@ -67,6 +68,7 @@ fun RegisterScreen(
     viewModel: RegisterViewModel = koinViewModel(),
     // Health goals only exist where the platform has a health store (Health Connect on Android).
     healthSupported: Boolean = koinInject<HealthDataSource>().isSupported,
+    reminderScheduler: ReminderScheduler = koinInject(),
 ) {
     val strings = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -152,6 +154,8 @@ fun RegisterScreen(
             initial = editingId?.let { initialFor(tab, state, it) },
             linkOptions = linkOptions,
             healthSupported = healthSupported,
+            remindersSupported = reminderScheduler.isSupported,
+            onRequestReminderPermission = reminderScheduler::requestPermission,
             onDismiss = close,
             onDelete = editingId?.takeIf { kind == EntityKind.TASK }?.let { id ->
                 {
@@ -159,7 +163,7 @@ fun RegisterScreen(
                     close()
                 }
             },
-            onSave = { name, points, recurrence, daysOfWeek, linkIds, healthGoal ->
+            onSave = { name, points, recurrence, daysOfWeek, linkIds, healthGoal, reminder ->
                 val valueIds = linkIds.filter { id -> state.values.any { it.id == id } }
                 val objectiveIds = linkIds.filter { id -> state.objectives.any { it.id == id } }
                 val id = editingId
@@ -170,9 +174,9 @@ fun RegisterScreen(
                         if (id != null) viewModel.updateObjective(id, name, points) else viewModel.addObjective(name, points)
                     EntityKind.TASK ->
                         if (id != null) {
-                            viewModel.updateTask(id, name, points, recurrence, daysOfWeek, valueIds, objectiveIds, healthGoal)
+                            viewModel.updateTask(id, name, points, recurrence, daysOfWeek, valueIds, objectiveIds, healthGoal, reminder)
                         } else {
-                            viewModel.addTask(name, points, recurrence, daysOfWeek, valueIds, objectiveIds, healthGoal)
+                            viewModel.addTask(name, points, recurrence, daysOfWeek, valueIds, objectiveIds, healthGoal, reminder)
                         }
                     EntityKind.PENALTY ->
                         if (id != null) viewModel.updatePenalty(id, name, points) else viewModel.addPenalty(name, points)
@@ -196,6 +200,7 @@ private fun initialFor(tab: CadTab, state: RegisterUiState, id: String): EntityF
             daysOfWeek = it.daysOfWeek,
             linkIds = it.linkedValueIds + it.linkedObjectiveIds,
             healthGoal = it.healthGoal,
+            reminder = it.reminder,
         )
     }
     CadTab.OBJECTIVES -> state.objectives.find { it.id == id }?.let { EntityFormInitial(it.title, it.points) }
@@ -259,7 +264,10 @@ private fun itemsFor(
             id = task.id,
             glyph = "✓", glyphBg = Paper.greenSoft, glyphColor = Paper.green,
             name = task.title,
-            meta = (state.linkedNames(task) + strings.frequencyLabel(task)).joinToString(" · "),
+            meta = (
+                state.linkedNames(task) + strings.frequencyLabel(task) +
+                    listOfNotNull(task.reminder?.let { "⏰ $it" })
+                ).joinToString(" · "),
             pointsLabel = "+${task.points}", pointsColor = Paper.subtle,
         )
     }

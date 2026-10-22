@@ -3,7 +3,9 @@ package com.adamfoerster.mdhabits.di
 import com.adamfoerster.mdhabits.core.platform.AppInfo
 import com.adamfoerster.mdhabits.core.settings.AppSettings
 import com.adamfoerster.mdhabits.domain.repository.HealthDataSource
+import com.adamfoerster.mdhabits.domain.repository.ReminderScheduler
 import com.adamfoerster.mdhabits.domain.repository.UnsupportedHealthDataSource
+import com.adamfoerster.mdhabits.platform.IosReminderScheduler
 import com.adamfoerster.mdhabits.platform.IosAppInfo
 import com.adamfoerster.mdhabits.platform.IosAppSettings
 import com.adamfoerster.mdhabits.platform.IosVaultFileSystem
@@ -18,5 +20,6 @@ actual fun platformModule(): Module = module {
     single<AppInfo> { IosAppInfo() }
     single<VaultPicker> { IosVaultPicker() }
     single<HealthDataSource> { UnsupportedHealthDataSource }
+    single<ReminderScheduler> { IosReminderScheduler() }
     single<VaultFileSystem> { IosVaultFileSystem(get()) }
 }

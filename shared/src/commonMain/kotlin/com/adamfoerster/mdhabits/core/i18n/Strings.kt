@@ -215,6 +215,22 @@ data class Strings(
     val healthTargetSteps: String,
     val healthTargetSleep: String,
     val healthTargetWeight: String,
+    // Task form sections and reminders
+    val formSectionWhen: String,
+    val formSectionMore: String,
+    val recurDailyHint: String,
+    val recurWeeklyHint: String,
+    val recurDaysOfWeekHint: String,
+    val recurAdhocHint: String,
+    val reminderLabel: String,
+    val reminderOff: String,
+    val reminderTimeTemplate: String,
+    val reminderHint: String,
+    val reminderUnavailable: String,
+    val reminderDenied: String,
+    /** The body of a task reminder notification (the title is the task's name). */
+    val reminderBody: String,
+    val linksNone: String,
     val healthPrivacyTitle: String,
     val healthPrivacyBody: String,
     // Annual theme screen
@@ -275,6 +291,8 @@ data class Strings(
     fun redeemed(name: String): String = redeemedToast.replace("%1", name)
 
     fun metaObjective(n: Int): String = metaObjectiveTemplate.replace("%1", n.toString())
+
+    fun reminderTime(time: String): String = reminderTimeTemplate.replace("%1", time)
 
     fun themeKicker(year: Int): String = themeKickerTemplate.replace("%1", year.toString())
 
@@ -398,6 +416,17 @@ private val En = Strings(
     healthAtLeast = "at least", healthAtMost = "at most",
     healthTargetSteps = "Target (steps)", healthTargetSleep = "Target (hours of sleep)",
     healthTargetWeight = "Target (kg)",
+    formSectionWhen = "When", formSectionMore = "More options",
+    recurDailyHint = "Every day. Done once per day.",
+    recurWeeklyHint = "Once a week, any day.",
+    recurDaysOfWeekHint = "Only on the weekdays you pick.",
+    recurAdhocHint = "A one-off task, done whenever the chance appears.",
+    reminderLabel = "Reminder", reminderOff = "No reminder", reminderTimeTemplate = "Every due day at %1",
+    reminderHint = "Notifies you on the days this task is due, unless it's already done.",
+    reminderUnavailable = "Reminders are for daily tasks, habits and days of the week.",
+    reminderDenied = "Notifications are blocked. Allow them in your system settings to get reminders.",
+    reminderBody = "Time to do it today.",
+    linksNone = "None",
     healthPrivacyTitle = "Your health data",
     healthPrivacyBody = "MdHabits reads your steps, sleep and weight from Health Connect, and only while the " +
         "health integration is turned on in Settings. It uses them to check off the tasks that have a health " +
@@ -539,6 +568,17 @@ private val Pt = Strings(
     healthAtLeast = "pelo menos", healthAtMost = "no máximo",
     healthTargetSteps = "Meta (passos)", healthTargetSleep = "Meta (horas de sono)",
     healthTargetWeight = "Meta (kg)",
+    formSectionWhen = "Quando", formSectionMore = "Mais opções",
+    recurDailyHint = "Todo dia. Feita uma vez por dia.",
+    recurWeeklyHint = "Uma vez por semana, em qualquer dia.",
+    recurDaysOfWeekHint = "Só nos dias da semana que você escolher.",
+    recurAdhocHint = "Uma tarefa avulsa, feita quando surgir a chance.",
+    reminderLabel = "Lembrete", reminderOff = "Sem lembrete", reminderTimeTemplate = "Nos dias devidos, às %1",
+    reminderHint = "Avisa nos dias em que a tarefa é devida, a menos que já esteja feita.",
+    reminderUnavailable = "Lembretes valem para tarefas diárias, hábitos e dias da semana.",
+    reminderDenied = "As notificações estão bloqueadas. Permita-as nas configurações do sistema para receber lembretes.",
+    reminderBody = "Hora de fazer hoje.",
+    linksNone = "Nenhum",
     healthPrivacyTitle = "Seus dados de saúde",
     healthPrivacyBody = "O MdHabits lê seus passos, sono e peso do Health Connect, e só enquanto a integração " +
         "de saúde estiver ligada nas Configurações. Ele os usa para marcar as tarefas que têm meta de saúde e " +
@@ -680,6 +720,17 @@ private val Es = Strings(
     healthAtLeast = "al menos", healthAtMost = "como máximo",
     healthTargetSteps = "Meta (pasos)", healthTargetSleep = "Meta (horas de sueño)",
     healthTargetWeight = "Meta (kg)",
+    formSectionWhen = "Cuándo", formSectionMore = "Más opciones",
+    recurDailyHint = "Cada día. Se hace una vez al día.",
+    recurWeeklyHint = "Una vez por semana, cualquier día.",
+    recurDaysOfWeekHint = "Solo los días de la semana que elijas.",
+    recurAdhocHint = "Una tarea suelta, se hace cuando surja la ocasión.",
+    reminderLabel = "Recordatorio", reminderOff = "Sin recordatorio", reminderTimeTemplate = "Los días debidos, a las %1",
+    reminderHint = "Avisa los días en que la tarea toca, salvo que ya esté hecha.",
+    reminderUnavailable = "Los recordatorios sirven para tareas diarias, hábitos y días de la semana.",
+    reminderDenied = "Las notificaciones están bloqueadas. Permítelas en los ajustes del sistema para recibir recordatorios.",
+    reminderBody = "Hora de hacerla hoy.",
+    linksNone = "Ninguno",
     healthPrivacyTitle = "Tus datos de salud",
     healthPrivacyBody = "MdHabits lee tus pasos, sueño y peso de Health Connect, y solo mientras la integración " +
         "de salud esté activada en Ajustes. Los usa para marcar las tareas que tienen una meta de salud y " +

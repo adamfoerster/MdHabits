@@ -17,6 +17,7 @@ import com.adamfoerster.mdhabits.core.i18n.LocaleController
 import com.adamfoerster.mdhabits.core.i18n.stringsFor
 import com.adamfoerster.mdhabits.core.settings.AppSettings
 import com.adamfoerster.mdhabits.data.markdown.VaultWatcher
+import com.adamfoerster.mdhabits.domain.usecase.ReminderSyncer
 import com.adamfoerster.mdhabits.ui.navigation.MainGraph
 import com.adamfoerster.mdhabits.ui.navigation.MainScaffold
 import com.adamfoerster.mdhabits.ui.navigation.OnboardingGraph
@@ -39,6 +40,10 @@ fun App() = KoinContext {
     LaunchedEffect(lifecycleOwner, vaultWatcher) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) { vaultWatcher.watch() }
     }
+
+    // Keep the scheduled task reminders in step with the tasks (a no-op where reminders aren't supported).
+    val reminderSyncer = koinInject<ReminderSyncer>()
+    LaunchedEffect(reminderSyncer) { reminderSyncer.run() }
 
     CompositionLocalProvider(LocalStrings provides stringsFor(lang)) {
         MdHabitsTheme {

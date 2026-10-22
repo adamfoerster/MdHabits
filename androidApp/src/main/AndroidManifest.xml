@@ -6,6 +6,10 @@
     <uses-permission android:name="android.permission.health.READ_SLEEP" />
     <uses-permission android:name="android.permission.health.READ_WEIGHT" />
 
+    <!-- Task reminders: the notification itself (Android 13+) and re-arming the alarms after a reboot. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <!-- Lets the app find the Health Connect provider on Android 13 and older. -->
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
@@ -27,6 +31,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:exported="false"
+            android:name="com.adamfoerster.mdhabits.platform.ReminderReceiver" />
+
+        <receiver
+            android:exported="true"
+            android:name="com.adamfoerster.mdhabits.platform.ReminderBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Explains how health data is used; Health Connect links here from its permission screen. -->
         <activity

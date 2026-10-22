@@ -153,7 +153,7 @@ fun OnboardingFlow(
             linkOptions = linkOptions,
             onDismiss = { sheetKind = null },
             // Onboarding comes before the health integration is set up, so no health goal here.
-            onSave = { name, points, recurrence, daysOfWeek, linkIds, _ ->
+            onSave = { name, points, recurrence, daysOfWeek, linkIds, _, _ ->
                 when (kind) {
                     EntityKind.VALUE -> viewModel.addValue(name, "")
                     EntityKind.OBJECTIVE -> viewModel.addObjective(name, points)

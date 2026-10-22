@@ -95,6 +95,11 @@ data class Task(
      * because the week note it was completed in is eventually closed and no longer read in full.
      */
     val doneOn: LocalDate? = null,
+    /**
+     * The time of day the user wants a notification on the days the task is due; null for no
+     * reminder. Only per-day tasks ([isPerDay]) remind: see [reminderDays].
+     */
+    val reminder: ReminderTime? = null,
 ) {
     /** Whether the task belongs in a "today" list on the given weekday. */
     fun isDueOn(dayOfWeek: DayOfWeek): Boolean = when (recurrence) {
