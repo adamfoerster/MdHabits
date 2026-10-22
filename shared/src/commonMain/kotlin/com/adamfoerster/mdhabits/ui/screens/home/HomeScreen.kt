@@ -52,6 +52,7 @@ import com.adamfoerster.mdhabits.ui.components.paperClick
 import com.adamfoerster.mdhabits.ui.components.rememberToastState
 import com.adamfoerster.mdhabits.ui.components.sansStyle
 import com.adamfoerster.mdhabits.ui.theme.Paper
+import kotlinx.datetime.isoDayNumber
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -69,6 +70,7 @@ fun HomeScreen(
     val recordedWeeks by viewModel.recordedWeekIds.collectAsStateWithLifecycle()
     var showPenalties by remember { mutableStateOf(false) }
     var showWeeks by remember { mutableStateOf(false) }
+    var showPastDays by remember { mutableStateOf(false) }
     var monthsAgo by remember { mutableStateOf(0) }
     val toast = rememberToastState()
 
@@ -151,6 +153,36 @@ fun HomeScreen(
                 sections.forEachIndexed { index, (label, rows) ->
                     TaskSectionLabel(label, topPadding = if (index == 0) 12 else 16)
                     rows.forEach { row -> TaskRow(row, strings) { toggled -> onToggle(viewModel, toast, strings, row, toggled) } }
+                }
+
+                // Earlier days of the weeks still open, collapsed by default: a day forgotten can
+                // still be checked off until its week closes.
+                if (state.pastDays.isNotEmpty()) {
+                    Text(
+                        if (showPastDays) strings.hidePastDays else strings.showPastDays,
+                        Modifier
+                            .padding(top = 14.dp)
+                            .paperClick { showPastDays = !showPastDays }
+                            .padding(vertical = 4.dp),
+                        style = sansStyle(12.sp, Paper.accent, FontWeight.SemiBold)
+                            .copy(textDecoration = TextDecoration.Underline),
+                    )
+                    if (showPastDays) {
+                        state.pastDays.forEach { pastDay ->
+                            val date = pastDay.date
+                            TaskSectionLabel(
+                                "${strings.daysShort[date.dayOfWeek.isoDayNumber - 1]} · " +
+                                    strings.shortDate(date.dayOfMonth, date.monthNumber),
+                                topPadding = 12,
+                            )
+                            pastDay.tasks.forEach { row ->
+                                TaskRow(row, strings) { toggled ->
+                                    viewModel.onTogglePastDay(row.task, date, toggled)
+                                    if (toggled) toast.show("+${row.task.points} ${strings.pointsWord} · ${row.task.title}")
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // Weekly review CTA — only until the review creates this week's note.

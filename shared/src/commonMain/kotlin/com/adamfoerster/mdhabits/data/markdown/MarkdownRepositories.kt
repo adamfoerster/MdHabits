@@ -210,7 +210,8 @@ class MarkdownTaskRepository(
         val task = getById(taskId)
         weeks.updateWeek(weekId) { note ->
             val current = note.instances.find { it.taskId == taskId }
-            val updated = (current ?: TaskInstance(taskId, weekId)).completing(completed, on).withTitle(task?.title)
+            val updated = (current ?: TaskInstance(taskId, weekId)).completing(completed, on, task?.isPerDay == true)
+                .withTitle(task?.title)
             note.copy(instances = note.instances.filterNot { it.taskId == taskId } + updated)
         }
         if (task?.recurrence == Recurrence.ADHOC) {

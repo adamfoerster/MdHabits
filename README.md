@@ -37,6 +37,17 @@ make them pass, update the release notes, bump the version) are documented in
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
 
+### 0.20.0 — Catch up on previous days
+
+- **Previous days on Home.** A *Show previous days* link under the task list unfolds the days
+  before today whose week is still open — yesterday back to the previous week's Monday — each with
+  its daily, habit and days-of-week tasks, so a day you forgot to tick can still be checked off (or
+  undone). A week that is already closed, its final balance written into its note, never shows up.
+- **Late habits.** Checking off a habit day that was already charged as missed takes the charge
+  back; unchecking an ended habit day charges it again right away.
+- Undoing one day of a daily task no longer clears the task's completion for the other days of the
+  week.
+
 ### 0.19.0 — Task reminders and a calmer task form
 
 - **Reminders.** A daily task, habit or days-of-week task can now notify you at a time you choose

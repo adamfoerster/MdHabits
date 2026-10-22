@@ -92,6 +92,15 @@ class WeekCalculator(
     fun previousWeekId(date: LocalDate = today()): String =
         weekId(rangeOf(date).start.minus(1, DateTimeUnit.DAY))
 
+    /**
+     * Whether [weekId] ended more than [CLOSE_AFTER_DAYS] days before [today]: old enough to be
+     * closed, its points fixed for good. The current and the previous week never are.
+     */
+    fun isPastClosing(weekId: String, today: LocalDate = today()): Boolean {
+        val end = rangeOfWeekId(weekId)?.endInclusive ?: return false
+        return today > end.plus(CLOSE_AFTER_DAYS, DateTimeUnit.DAY)
+    }
+
     private fun mondayOfWeekId(weekId: String): LocalDate? {
         val match = WEEK_ID_REGEX.matchEntire(weekId) ?: return null
         val year = match.groupValues[1].toInt()
@@ -104,7 +113,10 @@ class WeekCalculator(
 
     private fun pad2(value: Int): String = if (value < 10) "0$value" else value.toString()
 
-    private companion object {
-        val WEEK_ID_REGEX = Regex("""(\d{4})-W(\d{2})""")
+    companion object {
+        /** A week closes once more than this many days have passed since its Sunday. */
+        const val CLOSE_AFTER_DAYS = 7
+
+        private val WEEK_ID_REGEX = Regex("""(\d{4})-W(\d{2})""")
     }
 }

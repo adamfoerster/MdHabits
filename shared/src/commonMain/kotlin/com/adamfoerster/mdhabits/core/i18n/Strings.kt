@@ -262,6 +262,9 @@ data class Strings(
     /** The link on Home's week badge that opens the past-weeks calendar. */
     val seeWeeks: String,
     val weekPickerTitle: String,
+    /** Home's toggle for the ended days of the weeks still open, which can still be checked off. */
+    val showPastDays: String,
+    val hidePastDays: String,
     val weekPickerSub: String,
     val weekPickerEmpty: String,
     val repReadOnly: String,
@@ -453,6 +456,7 @@ private val En = Strings(
     revCommitSummaryTemplate = "%1 tasks · up to %2 pts possible",
     revStartWeek = "Start the week", revWeekStartedTemplate = "Week %1 started ✎",
     seeWeeks = "past weeks", weekPickerTitle = "Past weeks",
+    showPastDays = "Show previous days", hidePastDays = "Hide previous days",
     weekPickerSub = "Only weeks with records can be opened.",
     weekPickerEmpty = "No week has records yet.",
     repReadOnly = "Read-only", repCompleted = "Completed", repSlips = "Slips",
@@ -605,6 +609,7 @@ private val Pt = Strings(
     revCommitSummaryTemplate = "%1 tarefas · até %2 pts possíveis",
     revStartWeek = "Iniciar a semana", revWeekStartedTemplate = "Semana %1 iniciada ✎",
     seeWeeks = "ver semanas", weekPickerTitle = "Semanas passadas",
+    showPastDays = "Mostrar dias anteriores", hidePastDays = "Ocultar dias anteriores",
     weekPickerSub = "Só semanas com registros podem ser abertas.",
     weekPickerEmpty = "Nenhuma semana tem registros ainda.",
     repReadOnly = "Somente leitura", repCompleted = "Concluídas", repSlips = "Descontos",
@@ -757,6 +762,7 @@ private val Es = Strings(
     revCommitSummaryTemplate = "%1 tareas · hasta %2 pts posibles",
     revStartWeek = "Iniciar la semana", revWeekStartedTemplate = "Semana %1 iniciada ✎",
     seeWeeks = "ver semanas", weekPickerTitle = "Semanas pasadas",
+    showPastDays = "Mostrar días anteriores", hidePastDays = "Ocultar días anteriores",
     weekPickerSub = "Solo se abren las semanas con registros.",
     weekPickerEmpty = "Ninguna semana tiene registros todavía.",
     repReadOnly = "Solo lectura", repCompleted = "Completadas", repSlips = "Descuentos",

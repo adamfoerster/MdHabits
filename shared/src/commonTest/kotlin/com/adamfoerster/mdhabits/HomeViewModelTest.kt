@@ -46,7 +46,7 @@ class HomeViewModelTest : MainDispatcherTest() {
             ledgerRepository = ledger,
             penaltyRepository = penalties,
             valueRepository = values,
-            completeTask = CompleteTaskUseCase(tasks, ledger),
+            completeTask = CompleteTaskUseCase(tasks, ledger, fixedClock(), TimeZone.UTC),
             applyPenalty = ApplyPenaltyUseCase(ledger),
             weekCalculator = wc,
             syncMdPrayer = disabledMdPrayerSync(wc),

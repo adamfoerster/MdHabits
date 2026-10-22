@@ -208,11 +208,13 @@ data class TaskInstance(
  * The instance after (un)completing its task on [on], keeping the per-day [TaskInstance.completedDates]
  * history intact: un-completing drops only that day, never the rest of the week.
  */
-fun TaskInstance.completing(completed: Boolean, on: LocalDate): TaskInstance = copy(
-    completed = completed,
-    completedOn = if (completed) on else null,
-    completedDates = if (completed) (completedDates + on).distinct().sorted() else completedDates - on,
-)
+fun TaskInstance.completing(completed: Boolean, on: LocalDate, perDay: Boolean = false): TaskInstance {
+    val dates = if (completed) (completedDates + on).distinct().sorted() else completedDates - on
+    // A per-day task stays done while any day of the week is: checking off (or undoing) an earlier
+    // day must not clear today's completion, nor move its stamp back.
+    if (perDay) return copy(completed = dates.isNotEmpty(), completedOn = dates.lastOrNull(), completedDates = dates)
+    return copy(completed = completed, completedOn = if (completed) on else null, completedDates = dates)
+}
 
 /** A reward that costs [pointCost] points to redeem. */
 data class Reward(

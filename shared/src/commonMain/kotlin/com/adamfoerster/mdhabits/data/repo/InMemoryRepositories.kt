@@ -94,9 +94,10 @@ class InMemoryTaskRepository : TaskRepository {
 
     override suspend fun setCompleted(taskId: String, weekId: String, completed: Boolean, on: LocalDate) {
         startedWeeks.update { it + weekId }
+        val perDay = getTask(taskId)?.isPerDay == true
         instances.update { list ->
             val current = list.find { it.taskId == taskId && it.weekId == weekId }
-            val updated = (current ?: TaskInstance(taskId, weekId)).completing(completed, on)
+            val updated = (current ?: TaskInstance(taskId, weekId)).completing(completed, on, perDay)
             list.filterNot { it.taskId == taskId && it.weekId == weekId } + updated
         }
     }

@@ -25,6 +25,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
 
 data class HomeTaskRow(
     val task: Task,
@@ -43,9 +46,16 @@ data class WeekPickerMonth(
     val canGoForward: Boolean,
 )
 
+/** An ended day of a week still open, with the per-day tasks that were due on it. */
+data class HomePastDay(
+    val date: LocalDate,
+    val tasks: List<HomeTaskRow>,
+)
+
 private data class HomeSources(
     val tasks: List<Task>,
     val instances: List<TaskInstance>,
+    val previousInstances: List<TaskInstance>,
     val weekStarted: Boolean,
     val everCompleted: Set<String>,
 )
@@ -66,6 +76,11 @@ data class HomeUiState(
     val balance: Int = 0,
     /** True while the current week's note doesn't exist yet — the review is what creates it. */
     val showReviewCta: Boolean = false,
+    /**
+     * The days before today whose week is still open, newest first — they can still be checked off
+     * late. A closed week (its final balance written into its note) is settled and never listed.
+     */
+    val pastDays: List<HomePastDay> = emptyList(),
     val loading: Boolean = true,
 ) {
     val allTasks: List<HomeTaskRow> get() = todayTasks + weeklyTasks + adhocTasks
@@ -87,6 +102,7 @@ class HomeViewModel(
 ) : ViewModel() {
 
     val weekId: String = weekCalculator.weekId()
+    private val previousWeekId: String = weekCalculator.previousWeekId()
     private val year = weekCalculator.today().year
 
     init {
@@ -105,16 +121,19 @@ class HomeViewModel(
         combine(
             taskRepository.observeTasks(activeOnly = true),
             taskRepository.observeInstances(weekId),
+            taskRepository.observeInstances(previousWeekId),
             taskRepository.observeWeekStarted(weekId),
             taskRepository.observeCompletedTaskIds(),
-        ) { tasks, instances, weekStarted, everCompleted ->
-            HomeSources(tasks, instances, weekStarted, everCompleted)
+        ) { tasks, instances, previousInstances, weekStarted, everCompleted ->
+            HomeSources(tasks, instances, previousInstances, weekStarted, everCompleted)
         },
         themeRepository.observeTheme(year),
         ledgerRepository.observeBalance(),
         valueRepository.observeValues(),
-        healthLogRepository.observeWeek(weekId),
-    ) { (tasks, instances, weekStarted, everCompleted), theme, balance, values, health ->
+        combine(healthLogRepository.observeWeek(weekId), healthLogRepository.observeWeek(previousWeekId)) { current, previous ->
+            previous + current
+        },
+    ) { (tasks, instances, previousInstances, weekStarted, everCompleted), theme, balance, values, health ->
         val today = weekCalculator.today()
         val healthToday = health.find { it.date == today }
         val (_, weekNumber) = weekCalculator.isoWeek(today)
@@ -142,6 +161,25 @@ class HomeViewModel(
                 healthToday = task.healthGoal?.let { goal -> healthToday?.valueOf(goal.metric) },
             )
         }.sortedWith(compareBy({ it.completed }, { it.task.title }))
+        val instancesByWeek = mapOf(weekId to instanceByTask, previousWeekId to previousInstances.associateBy { it.taskId })
+        val pastDays = openPastDays(today).mapNotNull { day ->
+            val dayInstances = instancesByWeek[weekCalculator.weekId(day)].orEmpty()
+            val dayHealth = health.find { it.date == day }
+            val dayRows = tasks
+                .filter { it.isDueOn(day.dayOfWeek) && it.habitSince.let { since -> since == null || day >= since } }
+                .map { task ->
+                    HomeTaskRow(
+                        task = task,
+                        completed = day in dayInstances[task.id]?.completedDates.orEmpty(),
+                        planned = dayInstances[task.id]?.planned == true,
+                        linkedNames = task.linkedValueIds.mapNotNull(valueNames::get) +
+                            task.linkedObjectiveIds.mapNotNull(objectiveNames::get),
+                        healthToday = task.healthGoal?.let { goal -> dayHealth?.valueOf(goal.metric) },
+                    )
+                }
+                .sortedWith(compareBy({ it.completed }, { it.task.title }))
+            dayRows.takeIf { it.isNotEmpty() }?.let { HomePastDay(day, it) }
+        }
         HomeUiState(
             weekNumber = weekNumber,
             range = weekCalculator.rangeOf(),
@@ -156,6 +194,7 @@ class HomeViewModel(
             visibleAdhocTasks = rows.filter { it.task.recurrence == Recurrence.ADHOC && !it.completed },
             balance = balance,
             showReviewCta = !weekStarted,
+            pastDays = pastDays,
             loading = false,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
@@ -183,8 +222,29 @@ class HomeViewModel(
         )
     }
 
+    /**
+     * The days from yesterday back to the previous week's Monday, newest first, minus those of a
+     * closed week. Weeks close [WeekCalculator.CLOSE_AFTER_DAYS] days after their Sunday, so the
+     * previous week is normally still open; it is checked anyway, since a note can arrive closed.
+     */
+    private suspend fun openPastDays(today: LocalDate): List<LocalDate> {
+        val firstDay = weekCalculator.rangeOf(today).start.minus(7, DateTimeUnit.DAY)
+        val openWeeks = setOf(weekId, previousWeekId).filterTo(mutableSetOf()) {
+            !weekCalculator.isPastClosing(it, today) && !ledgerRepository.isWeekClosed(it)
+        }
+        return generateSequence(today.minus(1, DateTimeUnit.DAY)) { it.minus(1, DateTimeUnit.DAY) }
+            .takeWhile { it >= firstDay }
+            .filter { weekCalculator.weekId(it) in openWeeks }
+            .toList()
+    }
+
     fun onToggleComplete(task: Task, completed: Boolean) = viewModelScope.launch {
         completeTask(task, weekId, completed)
+    }
+
+    /** Checks off (or undoes) a per-day task for an earlier day of a week still open. */
+    fun onTogglePastDay(task: Task, day: LocalDate, completed: Boolean) = viewModelScope.launch {
+        completeTask(task, weekCalculator.weekId(day), completed, on = day)
     }
 
     fun onApplyPenalty(penalty: Penalty) = viewModelScope.launch {

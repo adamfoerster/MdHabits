@@ -166,7 +166,11 @@ Keep the README release-notes heading, `versionName`, `MARKETING_VERSION`, and d
 - Past weeks are read-only: Home's week badge opens a calendar (`WeekPickerSheet`, built from
   `WeekCalculator.monthGrid`) listing only weeks `PointsLedgerRepository.observeRecordedWeekIds`
   reports, and the week it opens (`WeekReportScreen`) only reads the ledger and that week's review.
-  Editing stays on Home, which is always the current week.
+  Editing stays on Home, which is always the current week — plus, under *Show previous days*
+  (`HomeUiState.pastDays`), the ended days of the weeks still open (`WeekCalculator.isPastClosing`
+  and `isWeekClosed` both false), whose per-day tasks can be checked off late. Checking off an
+  ended habit day reverses its `HABIT_MISS` charge, and unchecking one charges it right away
+  (`CompleteTaskUseCase`).
 - Health goals (`Task.healthGoal`) are filled by `SyncHealthUseCase`, which reads the platform's
   `HealthDataSource` (Health Connect on Android via `AndroidHealthConnectSource`; iOS/Desktop bind
   `UnsupportedHealthDataSource`, which hides every health UI). Like the mdPrayer sync it runs on

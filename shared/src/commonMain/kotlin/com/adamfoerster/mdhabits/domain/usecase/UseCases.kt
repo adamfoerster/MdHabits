@@ -22,6 +22,7 @@ import com.adamfoerster.mdhabits.domain.repository.ThemeRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -59,6 +60,30 @@ class CompleteTaskUseCase(
         ledger.append(
             PointsEvent(newId("L"), now, weekId, PointsSource.TASK, task.id, label, delta),
         )
+        if (task.recurrence == Recurrence.HABIT && day < now.toLocalDateTime(timeZone).date) {
+            settleMissedDay(task, weekId, day, nowCompleted, now)
+        }
+    }
+
+    /**
+     * A habit day that already ended is charged as missed when it ends undone (by
+     * [PenalizeMissedHabitsUseCase]). Checking it off late takes the charge back, and unchecking it
+     * charges it right away — the [PenalizeMissedHabitsUseCase.missRefId] entry then keeps the
+     * sweep from charging it a second time.
+     */
+    private suspend fun settleMissedDay(task: Task, weekId: String, day: LocalDate, nowCompleted: Boolean, now: Instant) {
+        val since = task.habitSince
+        if (since != null && day < since) return
+        val refId = PenalizeMissedHabitsUseCase.missRefId(task.id, day)
+        val charged = ledger.eventsForWeek(weekId)
+            .filter { it.source == PointsSource.HABIT_MISS && it.refId == refId }
+            .sumOf { it.delta } < 0
+        val delta = when {
+            nowCompleted && charged -> task.points
+            !nowCompleted && !charged -> -task.points
+            else -> return
+        }
+        ledger.append(PointsEvent(newId("L"), now, weekId, PointsSource.HABIT_MISS, refId, task.title, delta))
     }
 }
 

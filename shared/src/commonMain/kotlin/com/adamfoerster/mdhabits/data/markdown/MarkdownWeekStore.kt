@@ -71,7 +71,7 @@ fun balanceOf(notes: Map<String, WeekNote>): Int = weekPoints(notes).values.last
  *
  * Besides loading and writing notes, the store keeps the points checkpoints settled ([settle]):
  * every open week's `pointsAtWeekStart` follows the weeks before it, and a week is closed — its
- * `pointsAtWeekEnd` computed and fixed — once more than [CLOSE_AFTER_DAYS] days have passed since
+ * `pointsAtWeekEnd` computed and fixed — once more than [WeekCalculator.CLOSE_AFTER_DAYS] days have passed since
  * it ended. That runs on load, after every change, and on every poll of the [VaultWatcher], so a
  * week closes even when nothing is edited. A closed week is read-only: [updateWeek] ignores it.
  *
@@ -191,7 +191,7 @@ class MarkdownWeekStore(
 
     /**
      * Every open week gets the running balance as its `pointsAtWeekStart`; one that ended more than
-     * [CLOSE_AFTER_DAYS] days ago is closed with its `pointsAtWeekEnd`. Closed weeks are left as
+     * [WeekCalculator.CLOSE_AFTER_DAYS] days ago is closed with its `pointsAtWeekEnd`. Closed weeks are left as
      * they are — their checkpoint is what the following weeks build on.
      */
     private fun settle(notes: Map<String, WeekNote>): Map<String, WeekNote> {
@@ -201,13 +201,8 @@ class MarkdownWeekStore(
             if (note.closed) return@mapValues note
             val span = points.getValue(weekId)
             val opened = note.copy(pointsAtWeekStart = span.start, pointsAtWeekEnd = null)
-            if (isPastClosing(weekId, today)) opened.copy(closed = true, pointsAtWeekEnd = span.end) else opened
+            if (weekCalculator.isPastClosing(weekId, today)) opened.copy(closed = true, pointsAtWeekEnd = span.end) else opened
         }
-    }
-
-    private fun isPastClosing(weekId: String, today: LocalDate): Boolean {
-        val end = weekCalculator.rangeOfWeekId(weekId)?.endInclusive ?: return false
-        return today > end.plus(CLOSE_AFTER_DAYS, DateTimeUnit.DAY)
     }
 
     /**
@@ -224,9 +219,6 @@ class MarkdownWeekStore(
     }
 
     companion object {
-        /** A week closes once more than this many days have passed since its Sunday. */
-        const val CLOSE_AFTER_DAYS = 7
-
         private const val WEEKS_DIR = "weeks"
         private const val LEGACY_LEDGER_DIR = "ledger"
         private const val LEGACY_REVIEWS_DIR = "reviews"
