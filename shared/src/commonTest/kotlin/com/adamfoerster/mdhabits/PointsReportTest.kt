@@ -132,6 +132,20 @@ class PointsReportTest {
     }
 
     @Test
+    fun reportAndSaveMessageNameTheRealVaultLocation() = runTest {
+        val located = object : VaultFileSystem by vault {
+            override val rootDescription = "picked folder primary:Sync/MdHabits"
+        }
+        val report = PointsReport(
+            located, MarkdownWeekStore(located, weeks), tasks, settings, FakeAppInfo(), weeks,
+            fixedClock(NOW), TimeZone.UTC,
+        )
+
+        assertTrue("vault location: picked folder primary:Sync/MdHabits" in report.build())
+        assertEquals("picked folder primary:Sync/MdHabits", report.location)
+    }
+
+    @Test
     fun writeFailsWhenTheVaultSilentlyDropsTheFile() = runTest {
         seed("2026-W27.md", WeekNote("2026-W27", events = listOf(entry("L-1", "2026-W27", 5))))
         val dropping = object : VaultFileSystem by vault {

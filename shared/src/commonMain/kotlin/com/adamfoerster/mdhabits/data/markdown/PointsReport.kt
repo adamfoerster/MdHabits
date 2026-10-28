@@ -38,6 +38,9 @@ class PointsReport(
      * implementations swallow write errors, so the file is read back: a report that isn't there
      * throws instead of being reported as saved.
      */
+    /** Where the vault really is, to tell the user which folder to look in. */
+    val location: String get() = vault.rootDescription
+
     suspend fun write(): String {
         val now = clock.now()
         val name = "points-report-${stamp(now)}-${slug(appInfo.device)}.md"
@@ -67,6 +70,7 @@ class PointsReport(
             appendLine("- device: ${appInfo.device.ifEmpty { "?" }}")
             appendLine("- vault name: ${settings.vaultDisplayName ?: "-"}")
             appendLine("- vault ref: ${settings.vaultRef ?: "-"}")
+            appendLine("- vault location: ${vault.rootDescription.ifEmpty { "?" }}")
             appendLine("- today: ${weekCalculator.today()}, current week: ${weekCalculator.weekId()}")
             appendLine("- mdPrayer sync: ${settings.mdPrayerEnabled}, health sync: ${settings.healthConnectEnabled}")
             appendLine()

@@ -7,7 +7,7 @@ plugins {
 }
 
 // Keep in sync with Android versionName and iOS MARKETING_VERSION (see AGENTS.md).
-val appVersion = "0.21.1"
+val appVersion = "0.21.2"
 
 dependencies {
     implementation(projects.shared)

@@ -37,6 +37,11 @@ make them pass, update the release notes, bump the version) are documented in
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
 
+### 0.21.2 — Points report says where it saved
+
+- The points report's confirmation now names the folder the vault really lives in (or says it is
+  the app-private fallback when no folder was picked), and the report lists it too.
+
 ### 0.21.1 — Points report checks its file
 
 - The points report now reads its file back after saving and says so if it didn't land in the

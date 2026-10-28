@@ -10,6 +10,12 @@ package com.adamfoerster.mdhabits.storage
  * access returns.
  */
 interface VaultFileSystem {
+    /**
+     * Where the notes really live right now, for diagnostics: the picked folder, or the app-private
+     * fallback when none is set. Empty when the platform can't say.
+     */
+    val rootDescription: String get() = ""
+
     /** Names of the `.md` files directly inside [dir], or empty if the folder doesn't exist. */
     suspend fun list(dir: String): List<String>
 

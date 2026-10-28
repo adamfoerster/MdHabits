@@ -27,6 +27,13 @@ class AndroidVaultFileSystem(
 
     private fun fallbackRoot(): File = File(context.filesDir, "vault")
 
+    override val rootDescription: String
+        get() {
+            val tree = treeUri() ?: return "APP-PRIVATE fallback, no folder picked: ${fallbackRoot().absolutePath}"
+            val docId = runCatching { DocumentsContract.getTreeDocumentId(tree) }.getOrNull()
+            return "picked folder ${docId ?: tree} (provider ${tree.authority})"
+        }
+
     override suspend fun list(dir: String): List<String> = withContext(Dispatchers.IO) {
         val tree = treeUri()
         runCatching {

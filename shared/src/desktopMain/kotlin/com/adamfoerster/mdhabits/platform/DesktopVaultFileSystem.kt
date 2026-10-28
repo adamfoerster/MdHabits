@@ -21,6 +21,9 @@ class DesktopVaultFileSystem(
 
     private fun root(): File = settings.vaultRef?.let(::File) ?: fallbackRoot
 
+    override val rootDescription: String
+        get() = root().absolutePath + if (settings.vaultRef == null) " (fallback, no folder picked)" else ""
+
     override suspend fun list(dir: String): List<String> = listAt(root(), dir)
 
     override suspend fun listModified(dir: String): Map<String, Long>? = withContext(Dispatchers.IO) {
