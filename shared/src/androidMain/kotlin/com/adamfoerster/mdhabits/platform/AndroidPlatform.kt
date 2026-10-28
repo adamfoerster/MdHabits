@@ -62,6 +62,10 @@ class AndroidAppInfo(private val context: Context) : AppInfo {
         get() = runCatching {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName
         }.getOrNull().orEmpty()
+
+    override val device: String
+        get() = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} " +
+            "(Android ${android.os.Build.VERSION.RELEASE}, API ${android.os.Build.VERSION.SDK_INT})"
 }
 
 class AndroidAppSettings(context: Context) : AppSettings {

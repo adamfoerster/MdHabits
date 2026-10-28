@@ -183,6 +183,11 @@ data class Strings(
     val cfgLanguage: String,
     val cfgAbout: String,
     val cfgVersion: String,
+    val cfgPointsReport: String,
+    val cfgPointsReportSub: String,
+    /** Shown before the saved file's path. */
+    val cfgPointsReportDone: String,
+    val cfgPointsReportFailed: String,
     // mdPrayer integration
     val cfgMdPrayer: String,
     val cfgMdPrayerEnable: String,
@@ -397,6 +402,9 @@ private val En = Strings(
     cfgReminder = "Review reminder", cfgReminderSub = "Sunday, 8:00 PM", cfgActive = "active",
     cfgYear = "Year", cfgAnnualTheme = "Annual theme", cfgLanguage = "Language",
     cfgAbout = "About", cfgVersion = "Version",
+    cfgPointsReport = "Points report",
+    cfgPointsReportSub = "Save a diagnostic note to compare devices",
+    cfgPointsReportDone = "Report saved to", cfgPointsReportFailed = "Couldn't save the report",
     cfgMdPrayer = "mdPrayer", cfgMdPrayerEnable = "mdPrayer integration",
     cfgMdPrayerHelp = "Point mdPrayer and MdHabits to the same folder to sync daily prayer completions. " +
         "On Android, first set mdPrayer's own storage folder to a shared location. On iOS, mdPrayer's " +
@@ -550,6 +558,9 @@ private val Pt = Strings(
     cfgReminder = "Lembrete de revisão", cfgReminderSub = "Domingo, 20:00", cfgActive = "ativo",
     cfgYear = "Ano", cfgAnnualTheme = "Tema anual", cfgLanguage = "Idioma",
     cfgAbout = "Sobre", cfgVersion = "Versão",
+    cfgPointsReport = "Relatório de pontos",
+    cfgPointsReportSub = "Salvar uma nota de diagnóstico para comparar aparelhos",
+    cfgPointsReportDone = "Relatório salvo em", cfgPointsReportFailed = "Não foi possível salvar o relatório",
     cfgMdPrayer = "mdPrayer", cfgMdPrayerEnable = "Integração com o mdPrayer",
     cfgMdPrayerHelp = "Aponte o mdPrayer e o MdHabits para a mesma pasta para sincronizar as orações " +
         "diárias. No Android, primeiro configure a pasta de armazenamento do próprio mdPrayer para um " +
@@ -703,6 +714,9 @@ private val Es = Strings(
     cfgReminder = "Recordatorio de revisión", cfgReminderSub = "Domingo, 20:00", cfgActive = "activo",
     cfgYear = "Año", cfgAnnualTheme = "Tema anual", cfgLanguage = "Idioma",
     cfgAbout = "Acerca de", cfgVersion = "Versión",
+    cfgPointsReport = "Informe de puntos",
+    cfgPointsReportSub = "Guardar una nota de diagnóstico para comparar dispositivos",
+    cfgPointsReportDone = "Informe guardado en", cfgPointsReportFailed = "No se pudo guardar el informe",
     cfgMdPrayer = "mdPrayer", cfgMdPrayerEnable = "Integración con mdPrayer",
     cfgMdPrayerHelp = "Apunta mdPrayer y MdHabits a la misma carpeta para sincronizar las oraciones " +
         "diarias. En Android, primero configura la carpeta de almacenamiento del propio mdPrayer a una " +

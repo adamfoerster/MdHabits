@@ -51,6 +51,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun SettingsScreen(
     onOpenTheme: () -> Unit,
     viewModel: SettingsViewModel = koinViewModel(),
+    diagnostics: DiagnosticsViewModel = koinViewModel(),
 ) {
     val strings = LocalStrings.current
     val vaultName by viewModel.vaultName.collectAsStateWithLifecycle()
@@ -239,6 +240,20 @@ fun SettingsScreen(
                             subtitle = null,
                             trailing = {
                                 Text(viewModel.version, style = sansStyle(13.sp, Paper.muted, FontWeight.SemiBold))
+                            },
+                            divider = true,
+                        )
+                        SettingRow(
+                            icon = { DownloadIcon() },
+                            title = strings.cfgPointsReport,
+                            subtitle = strings.cfgPointsReportSub,
+                            onClick = {
+                                diagnostics.writePointsReport { path ->
+                                    toast.show(
+                                        if (path != null) "${strings.cfgPointsReportDone} $path"
+                                        else strings.cfgPointsReportFailed,
+                                    )
+                                }
                             },
                         )
                     }

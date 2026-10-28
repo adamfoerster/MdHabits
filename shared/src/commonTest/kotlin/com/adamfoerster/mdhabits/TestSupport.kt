@@ -32,7 +32,10 @@ import kotlinx.datetime.TimeZone
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 
-class FakeAppInfo(override val version: String = "1.2.3") : AppInfo
+class FakeAppInfo(
+    override val version: String = "1.2.3",
+    override val device: String = "Test Phone (OS 1)",
+) : AppInfo
 
 /** A [Clock] pinned to a fixed instant, for deterministic dates in tests. */
 fun fixedClock(iso: String = "2026-07-02T12:00:00Z"): Clock = object : Clock {

@@ -11,6 +11,7 @@ import platform.Foundation.NSURL
 import platform.Foundation.NSUserDefaults
 import platform.Foundation.base64EncodedStringWithOptions
 import platform.UIKit.UIApplication
+import platform.UIKit.UIDevice
 import platform.UIKit.UIDocumentPickerDelegateProtocol
 import platform.UIKit.UIDocumentPickerViewController
 import platform.UIKit.UIViewController
@@ -21,6 +22,9 @@ class IosAppInfo : AppInfo {
     override val version: String
         get() = (NSBundle.mainBundle.objectForInfoDictionaryKey("CFBundleShortVersionString") as? String)
             .orEmpty()
+
+    override val device: String
+        get() = with(UIDevice.currentDevice) { "$model ($systemName $systemVersion)" }
 }
 
 class IosAppSettings : AppSettings {

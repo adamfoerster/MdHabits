@@ -13,6 +13,7 @@ import com.adamfoerster.mdhabits.data.markdown.MarkdownThemeRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownValueRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownWeekStore
 import com.adamfoerster.mdhabits.data.markdown.MarkdownWeeklyReviewRepository
+import com.adamfoerster.mdhabits.data.markdown.PointsReport
 import com.adamfoerster.mdhabits.data.markdown.VaultInspector
 import com.adamfoerster.mdhabits.data.markdown.VaultWatcher
 import com.adamfoerster.mdhabits.domain.repository.HealthLogRepository
@@ -39,6 +40,7 @@ import com.adamfoerster.mdhabits.ui.screens.redeem.RedeemViewModel
 import com.adamfoerster.mdhabits.ui.screens.register.RegisterViewModel
 import com.adamfoerster.mdhabits.ui.screens.report.WeekReportViewModel
 import com.adamfoerster.mdhabits.ui.screens.review.ReviewViewModel
+import com.adamfoerster.mdhabits.ui.screens.settings.DiagnosticsViewModel
 import com.adamfoerster.mdhabits.ui.screens.settings.SettingsViewModel
 import com.adamfoerster.mdhabits.ui.screens.theme.ThemeViewModel
 import org.koin.core.context.startKoin
@@ -83,6 +85,7 @@ val dataModule = module {
             ),
         )
     }
+    single { PointsReport(get(), get(), get(), get(), get(), get()) }
     single { VaultMigrator(get(), get()) }
     single { VaultInspector(get()) }
     single { LocaleController(get()) }
@@ -106,6 +109,7 @@ val viewModelModule = module {
     viewModel { RedeemViewModel(get(), get(), get(), get()) }
     viewModel { RegisterViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { DiagnosticsViewModel(get()) }
     viewModel { ThemeViewModel(get(), get(), get()) }
     viewModel { ReviewViewModel(get(), get(), get(), get(), get()) }
     viewModel { WeekReportViewModel(get(), get(), get()) }

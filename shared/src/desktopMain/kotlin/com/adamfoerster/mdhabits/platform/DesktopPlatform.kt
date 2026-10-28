@@ -20,6 +20,10 @@ class DesktopAppInfo : AppInfo {
     override val version: String
         get() = System.getProperty(VERSION_PROPERTY).orEmpty()
 
+    override val device: String
+        get() = "${System.getProperty("os.name")} ${System.getProperty("os.version")} " +
+            "(${System.getProperty("os.arch")}, Java ${System.getProperty("java.version")})"
+
     companion object {
         const val VERSION_PROPERTY = "mdhabits.version"
     }

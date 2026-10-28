@@ -8,4 +8,7 @@ package com.adamfoerster.mdhabits.core.platform
 interface AppInfo {
     /** The user-visible semver string, e.g. "0.8.0", or empty if the platform can't resolve it. */
     val version: String
+
+    /** A description of the device, e.g. "Google Pixel 8 (Android 15)"; empty if unknown. */
+    val device: String get() = ""
 }

@@ -37,6 +37,20 @@ make them pass, update the release notes, bump the version) are documented in
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
 
+### 0.21.1 — Points report checks its file
+
+- The points report now reads its file back after saving and says so if it didn't land in the
+  vault, instead of always reporting success.
+
+### 0.21.0 — Points report
+
+- **Points report.** *Settings → About → Points report* saves a diagnostic note,
+  `diagnostics/points-report-<date>-<device>.md`, in your vault. It lists the device, app version
+  and date, the balance as displayed, every week's checkpoints (in memory and as stored in the
+  file, flagging a closed week whose end doesn't match its own ledger), a fingerprint of each week
+  note, sync-conflict copies, the tasks and the full ledger — so two devices that show different
+  points over the same synced folder can be compared.
+
 ### 0.20.0 — Catch up on previous days
 
 - **Previous days on Home.** A *Show previous days* link under the task list unfolds the days
