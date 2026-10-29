@@ -116,6 +116,7 @@ Keep the README release-notes heading, `versionName`, `MARKETING_VERSION`, and d
 | Android app | `./gradlew :androidApp:assembleDebug` |
 | Shared framework (Android) | `./gradlew :shared:assembleAndroidMain` |
 | Desktop app | `./gradlew :desktopApp:run` |
+| Windows installer (.exe) | `./gradlew :desktopApp:windowsExe` → `desktopApp/build/windows/` |
 | Desktop tests (JVM) | `./gradlew :shared:desktopTest` |
 | iOS compile check | `./gradlew :shared:compileKotlinIosSimulatorArm64` |
 | Shared tests (JVM host) | `./gradlew :shared:testAndroidHostTest` |
