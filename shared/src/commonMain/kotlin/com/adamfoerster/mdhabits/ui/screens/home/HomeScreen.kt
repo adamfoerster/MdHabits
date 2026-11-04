@@ -409,7 +409,7 @@ private fun TaskRow(row: HomeTaskRow, strings: Strings, onToggle: (Boolean) -> U
         Column(Modifier.weight(1f)) {
             Text(
                 row.task.title,
-                style = sansStyle(15.sp, if (done) Paper.doneText else Paper.ink, FontWeight.Medium)
+                style = sansStyle(15.sp, if (done) Paper.doneText else if (row.missed) Paper.accent else Paper.ink, FontWeight.Medium)
                     .copy(textDecoration = if (done) TextDecoration.LineThrough else TextDecoration.None),
             )
             val subtitle = (row.linkedNames + strings.frequencyLabel(row.task)).joinToString(" · ")
@@ -421,11 +421,16 @@ private fun TaskRow(row: HomeTaskRow, strings: Strings, onToggle: (Boolean) -> U
                 )
             }
         }
-        // A habit's points go both ways: earned when done, charged when the day ends undone.
-        val sign = if (row.task.recurrence == Recurrence.HABIT) "±" else "+"
+        // A habit's points go both ways: earned when done, charged when the day ends undone —
+        // so a day that did end undone shows only the loss, in terracotta.
+        val sign = when {
+            row.missed -> "−"
+            row.task.recurrence == Recurrence.HABIT -> "±"
+            else -> "+"
+        }
         Text(
             "$sign${row.task.points}",
-            style = handStyle(17.sp, if (done) Paper.donePoints else Paper.pointsTint),
+            style = handStyle(17.sp, if (done) Paper.donePoints else if (row.missed) Paper.accent else Paper.pointsTint),
         )
     }
 }

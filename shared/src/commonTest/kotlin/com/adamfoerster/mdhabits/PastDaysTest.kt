@@ -107,6 +107,26 @@ class PastDaysTest : MainDispatcherTest() {
     }
 
     @Test
+    fun onlyAnUndoneHabitDayIsFlaggedMissed() = runTest {
+        val tasks = InMemoryTaskRepository()
+        val floss = Task("h1", "Floss", points = 4, recurrence = Recurrence.HABIT, habitSince = LocalDate(2026, 6, 30))
+        tasks.upsert(floss)
+        tasks.upsert(Task("d1", "Read", points = 2, recurrence = Recurrence.DAILY))
+        val vm = newViewModel(tasks)
+        keepHot(vm.state)
+
+        val yesterdayRows = vm.state.value.pastDays.first().tasks
+        assertTrue(yesterdayRows.single { it.task.id == "h1" }.missed)
+        // A plain daily task costs nothing when missed.
+        assertFalse(yesterdayRows.single { it.task.id == "d1" }.missed)
+
+        vm.onTogglePastDay(floss, yesterday, completed = true)
+        assertFalse(vm.state.value.pastDays.first().tasks.single { it.task.id == "h1" }.missed)
+        // Today's row is never flagged: the day isn't over.
+        assertFalse(vm.state.value.todayTasks.any { it.missed })
+    }
+
+    @Test
     fun checkingOffAPastDayCountsForThatDayInItsWeek() = runTest {
         val tasks = InMemoryTaskRepository()
         val ledger = InMemoryPointsLedgerRepository()

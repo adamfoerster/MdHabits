@@ -39,6 +39,8 @@ data class HomeTaskRow(
     val linkedNames: List<String> = emptyList(),
     /** Today's value of the metric in the task's [Task.healthGoal], or null when there is none (yet). */
     val healthToday: Double? = null,
+    /** A habit day that ended undone — the day it cost its points. Only set on the previous-days rows. */
+    val missed: Boolean = false,
 )
 
 /** One month of the week picker: its calendar plus which way the month arrows can still go. */
@@ -177,9 +179,11 @@ class HomeViewModel(
             val dayRows = tasks
                 .filter { it.isDueOn(day.dayOfWeek) && it.habitSince.let { since -> since == null || day >= since } }
                 .map { task ->
+                    val done = day in dayInstances[task.id]?.completedDates.orEmpty()
                     HomeTaskRow(
                         task = task,
-                        completed = day in dayInstances[task.id]?.completedDates.orEmpty(),
+                        completed = done,
+                        missed = !done && task.recurrence == Recurrence.HABIT,
                         planned = dayInstances[task.id]?.planned == true,
                         linkedNames = task.linkedValueIds.mapNotNull(valueNames::get) +
                             task.linkedObjectiveIds.mapNotNull(objectiveNames::get),

@@ -37,6 +37,11 @@ make them pass, update the release notes, bump the version) are documented in
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
 
+### 0.23.1 — Missed habit days stand out
+
+- In *Show previous days*, a habit left undone on an ended day is shown in terracotta with a
+  single "−" (the points it cost) instead of "±".
+
 ### 0.23.0 — Rewards redeemed today on Home
 
 - Home now lists the rewards redeemed today (name and points spent) in their own section (the same "Redeemed" label as the week report), in a
