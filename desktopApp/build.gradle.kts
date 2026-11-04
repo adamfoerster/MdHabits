@@ -7,7 +7,7 @@ plugins {
 }
 
 // Keep in sync with Android versionName and iOS MARKETING_VERSION (see AGENTS.md).
-val appVersion = "0.21.2"
+val appVersion = "0.22.1"
 
 dependencies {
     implementation(projects.shared)
@@ -26,7 +26,13 @@ compose.desktop {
             // macOS packaging rejects a 0.x.y major version.
             macOS { packageVersion = "1.${appVersion.substringAfter('.')}" }
             // Never change: it lets a newer Windows installer upgrade the installed app in place.
-            windows { upgradeUuid = "dacf405b-1517-4eb7-a42d-465aa62b1c7f" }
+            windows {
+                upgradeUuid = "dacf405b-1517-4eb7-a42d-465aa62b1c7f"
+                // Icon of the installer, the installed .exe and its shortcuts.
+                iconFile.set(project.file("icons/mdhabits.ico"))
+                shortcut = true
+                menu = true
+            }
         }
     }
 }

@@ -6,6 +6,8 @@ import com.adamfoerster.mdhabits.core.datetime.MonthGrid
 import com.adamfoerster.mdhabits.core.datetime.WeekCalculator
 import com.adamfoerster.mdhabits.core.datetime.WeekRange
 import com.adamfoerster.mdhabits.domain.model.Penalty
+import com.adamfoerster.mdhabits.domain.model.PointsEvent
+import com.adamfoerster.mdhabits.domain.model.PointsSource
 import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.model.TaskInstance
@@ -71,8 +73,13 @@ data class HomeUiState(
     val weeklyTasks: List<HomeTaskRow> = emptyList(),
     /** Unscheduled tasks, done whenever. */
     val adhocTasks: List<HomeTaskRow> = emptyList(),
-    /** Ad-hoc tasks still pending — completed ones drop off the list once checked off. */
+    /**
+     * What the ad-hoc section lists: the pending ad-hoc tasks, then the ones checked off this week
+     * (struck through). Ones finished in an earlier week are history and stay off.
+     */
     val visibleAdhocTasks: List<HomeTaskRow> = emptyList(),
+    /** The penalties applied this week by hand, newest first — each one a negative [PointsEvent]. */
+    val appliedPenalties: List<PointsEvent> = emptyList(),
     val balance: Int = 0,
     /** True while the current week's note doesn't exist yet — the review is what creates it. */
     val showReviewCta: Boolean = false,
@@ -180,6 +187,10 @@ class HomeViewModel(
                 .sortedWith(compareBy({ it.completed }, { it.task.title }))
             dayRows.takeIf { it.isNotEmpty() }?.let { HomePastDay(day, it) }
         }
+        // Ones finished in an earlier week are history, not this week's work: off the list and the count.
+        val adhocRows = rows.filter {
+            it.task.recurrence == Recurrence.ADHOC && (!it.completed || instanceByTask[it.task.id]?.completed == true)
+        }
         HomeUiState(
             weekNumber = weekNumber,
             range = weekCalculator.rangeOf(),
@@ -187,11 +198,13 @@ class HomeViewModel(
             hasTheme = theme != null,
             todayTasks = rows.filter { it.task.isDueOn(today.dayOfWeek) },
             weeklyTasks = rows.filter { it.task.recurrence == Recurrence.WEEKLY },
-            // Ones finished in an earlier week are history, not this week's work: off the list and the count.
-            adhocTasks = rows.filter {
-                it.task.recurrence == Recurrence.ADHOC && (!it.completed || instanceByTask[it.task.id]?.completed == true)
-            },
-            visibleAdhocTasks = rows.filter { it.task.recurrence == Recurrence.ADHOC && !it.completed },
+            adhocTasks = adhocRows,
+            visibleAdhocTasks = adhocRows,
+            // The ledger has no change feed of its own, but every entry moves the balance this
+            // combine already watches, so reading the week here keeps the list current.
+            appliedPenalties = ledgerRepository.eventsForWeek(weekId)
+                .filter { it.source == PointsSource.PENALTY }
+                .sortedByDescending { it.timestamp },
             balance = balance,
             showReviewCta = !weekStarted,
             pastDays = pastDays,

@@ -37,6 +37,16 @@ make them pass, update the release notes, bump the version) are documented in
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
 
+### 0.22.1 — App icon on the Windows installer
+
+- The Windows .exe installer, the installed app and its shortcuts now use the MdHabits icon.
+
+### 0.22.0 — Penalties and finished ad-hoc tasks on Home
+
+- Home now lists the penalties applied this week in their own section, in the penalty colour.
+- Ad-hoc tasks checked off this week stay in the list (struck through, after the pending ones)
+  instead of disappearing; ones finished in an earlier week still stay off.
+
 ### 0.21.2 — Points report says where it saved
 
 - The points report's confirmation now names the folder the vault really lives in (or says it is

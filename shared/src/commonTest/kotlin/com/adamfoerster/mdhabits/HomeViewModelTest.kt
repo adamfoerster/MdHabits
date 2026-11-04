@@ -103,22 +103,41 @@ class HomeViewModelTest : MainDispatcherTest() {
     }
 
     @Test
-    fun completedAdhocTaskDropsOffVisibleListButStaysCounted() = runTest {
+    fun completedAdhocTaskStaysListedAsDoneAfterThePendingOnes() = runTest {
         val tasks = InMemoryTaskRepository()
         val ledger = InMemoryPointsLedgerRepository()
         val adhoc = Task("t1", "Fix bike", points = 5, recurrence = Recurrence.ADHOC)
         tasks.upsert(adhoc)
+        tasks.upsert(Task("t2", "Zzz call bank", points = 3, recurrence = Recurrence.ADHOC))
 
         val vm = newViewModel(tasks = tasks, ledger = ledger)
         keepHot(vm.state)
 
-        assertTrue(vm.state.value.visibleAdhocTasks.any { it.task.id == "t1" })
+        assertFalse(vm.state.value.visibleAdhocTasks.first { it.task.id == "t1" }.completed)
 
         vm.onToggleComplete(adhoc, completed = true)
 
-        assertFalse(vm.state.value.visibleAdhocTasks.any { it.task.id == "t1" })
-        assertTrue(vm.state.value.adhocTasks.first { it.task.id == "t1" }.completed)
+        val listed = vm.state.value.visibleAdhocTasks
+        assertEquals(listOf("t2", "t1"), listed.map { it.task.id })
+        assertTrue(listed.last().completed)
         assertTrue(vm.state.value.allTasks.first { it.task.id == "t1" }.completed)
+    }
+
+    @Test
+    fun appliedPenaltiesAreListedNewestFirstWithTheirCost() = runTest {
+        val ledger = InMemoryPointsLedgerRepository()
+        val vm = newViewModel(ledger = ledger)
+        keepHot(vm.state)
+
+        assertTrue(vm.state.value.appliedPenalties.isEmpty())
+
+        vm.onApplyPenalty(Penalty("p1", "Skipped", pointCost = 8))
+        vm.onApplyPenalty(Penalty("p2", "Sugar", pointCost = 3))
+
+        val listed = vm.state.value.appliedPenalties
+        assertEquals(setOf("Skipped", "Sugar"), listed.map { it.label }.toSet())
+        assertEquals(listOf(-8, -3), listed.map { it.delta }.sorted())
+        assertTrue(listed.all { it.source == PointsSource.PENALTY })
     }
 
     @Test

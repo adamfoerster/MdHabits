@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -35,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.adamfoerster.mdhabits.core.datetime.WeekRange
 import com.adamfoerster.mdhabits.core.i18n.LocalStrings
 import com.adamfoerster.mdhabits.core.i18n.Strings
+import com.adamfoerster.mdhabits.domain.model.PointsEvent
 import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.ui.components.Chevron
 import com.adamfoerster.mdhabits.ui.components.GearIcon
@@ -153,6 +155,12 @@ fun HomeScreen(
                 sections.forEachIndexed { index, (label, rows) ->
                     TaskSectionLabel(label, topPadding = if (index == 0) 12 else 16)
                     rows.forEach { row -> TaskRow(row, strings) { toggled -> onToggle(viewModel, toast, strings, row, toggled) } }
+                }
+
+                // Penalties applied this week, in the penalty colour so they never read as tasks.
+                if (state.appliedPenalties.isNotEmpty()) {
+                    TaskSectionLabel(strings.penaltiesSection, topPadding = 16, color = Paper.danger)
+                    state.appliedPenalties.forEach { PenaltyRow(it) }
                 }
 
                 // Earlier days of the weeks still open, collapsed by default: a day forgotten can
@@ -331,12 +339,45 @@ private fun Header(
 }
 
 @Composable
-private fun TaskSectionLabel(text: String, topPadding: Int = 12) {
+private fun TaskSectionLabel(text: String, topPadding: Int = 12, color: Color = Paper.accent) {
     Text(
         text.uppercase(),
         Modifier.padding(top = topPadding.dp, bottom = 2.dp),
-        style = sansStyle(10.sp, Paper.accent.copy(alpha = 0.7f), FontWeight.Bold).copy(letterSpacing = 1.4.sp),
+        style = sansStyle(10.sp, color.copy(alpha = 0.7f), FontWeight.Bold).copy(letterSpacing = 1.4.sp),
     )
+}
+
+/** An applied penalty: no checkbox (it can't be undone from here), name and cost in the danger colour. */
+@Composable
+private fun PenaltyRow(event: PointsEvent) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .drawBehind {
+                drawLine(
+                    Paper.dangerSoft,
+                    Offset(0f, size.height),
+                    Offset(size.width, size.height),
+                    1.5.dp.toPx(),
+                )
+            }
+            .padding(vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(11.dp),
+    ) {
+        Box(
+            Modifier.size(20.dp).clip(RoundedCornerShape(5.dp)).background(Paper.dangerSoft),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("−", style = sansStyle(14.sp, Paper.danger, FontWeight.Bold))
+        }
+        Text(
+            event.label,
+            Modifier.weight(1f),
+            style = sansStyle(15.sp, Paper.danger, FontWeight.Medium),
+        )
+        Text("−${-event.delta}", style = handStyle(17.sp, Paper.danger))
+    }
 }
 
 @Composable
