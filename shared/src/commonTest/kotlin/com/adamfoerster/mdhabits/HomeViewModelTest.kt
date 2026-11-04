@@ -3,6 +3,7 @@ package com.adamfoerster.mdhabits
 import com.adamfoerster.mdhabits.data.repo.InMemoryHealthLogRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryPenaltyRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryPointsLedgerRepository
+import com.adamfoerster.mdhabits.data.repo.InMemoryRewardRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryTaskRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryThemeRepository
 import com.adamfoerster.mdhabits.data.repo.InMemoryValueRepository
@@ -11,16 +12,20 @@ import com.adamfoerster.mdhabits.domain.model.HealthComparison
 import com.adamfoerster.mdhabits.domain.model.HealthGoal
 import com.adamfoerster.mdhabits.domain.model.HealthMetric
 import com.adamfoerster.mdhabits.domain.model.Penalty
+import com.adamfoerster.mdhabits.domain.model.PointsEvent
 import com.adamfoerster.mdhabits.domain.model.PointsSource
+import com.adamfoerster.mdhabits.domain.model.Reward
 import com.adamfoerster.mdhabits.domain.model.PersonalValue
 import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.usecase.ApplyPenaltyUseCase
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
+import com.adamfoerster.mdhabits.domain.usecase.RedeemRewardUseCase
 import com.adamfoerster.mdhabits.domain.usecase.SyncHealthUseCase
 import com.adamfoerster.mdhabits.ui.screens.home.HomeViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlin.test.Test
@@ -121,6 +126,25 @@ class HomeViewModelTest : MainDispatcherTest() {
         assertEquals(listOf("t2", "t1"), listed.map { it.task.id })
         assertTrue(listed.last().completed)
         assertTrue(vm.state.value.allTasks.first { it.task.id == "t1" }.completed)
+    }
+
+    @Test
+    fun rewardsRedeemedTodayAreListedButEarlierDaysAreNot() = runTest {
+        val rewards = InMemoryRewardRepository()
+        val ledger = InMemoryPointsLedgerRepository()
+        val wc = fixedWeekCalculator()
+        rewards.upsert(Reward("r1", "Cinema", pointCost = 10))
+        ledger.append(PointsEvent("e0", Instant.parse("2026-07-01T12:00:00Z"), wc.weekId(), PointsSource.TASK, "t", "Work", 50))
+        val redeem = RedeemRewardUseCase(rewards, ledger, fixedClock())
+        redeem(wc.weekId(), rewards.getReward("r1")!!)
+        ledger.append(PointsEvent("e1", Instant.parse("2026-07-01T09:00:00Z"), wc.weekId(), PointsSource.REWARD, "r1", "Yesterday", -5))
+
+        val vm = newViewModel(ledger = ledger)
+        keepHot(vm.state)
+
+        val listed = vm.state.value.todayRedemptions
+        assertEquals(listOf("Cinema"), listed.map { it.label })
+        assertEquals(-10, listed.single().delta)
     }
 
     @Test

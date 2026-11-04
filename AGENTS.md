@@ -127,6 +127,9 @@ Keep the README release-notes heading, `versionName`, `MARKETING_VERSION`, and d
 
 - `kotlinx-datetime` is pinned to `0.8.0-0.6.x-compat` in the version catalog because the
   standard 0.6.2 breaks iOS/native on Kotlin 2.4. Don't "upgrade" it blindly.
+- `Strings` (`core/i18n/Strings.kt`) sits at the JVM's limit of 255 constructor parameters: adding one more
+  compiles but fails at runtime (`ClassFormatError: Too many arguments in method signature`, every test
+  touching `Strings` breaks). Reuse an existing string, or split a group into a nested class, before adding a field.
 - Repositories are Markdown-backed (`data/markdown/Markdown*`): each entity is one note
   with YAML frontmatter (values written as JSON literals — valid YAML 1.2 — so parsing
   stays unambiguous while Obsidian shows them as properties). File access goes through

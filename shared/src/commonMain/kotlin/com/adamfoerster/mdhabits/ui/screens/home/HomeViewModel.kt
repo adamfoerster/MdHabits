@@ -80,6 +80,8 @@ data class HomeUiState(
     val visibleAdhocTasks: List<HomeTaskRow> = emptyList(),
     /** The penalties applied this week by hand, newest first — each one a negative [PointsEvent]. */
     val appliedPenalties: List<PointsEvent> = emptyList(),
+    /** The rewards redeemed today, newest first — points spent, each one a negative [PointsEvent]. */
+    val todayRedemptions: List<PointsEvent> = emptyList(),
     val balance: Int = 0,
     /** True while the current week's note doesn't exist yet — the review is what creates it. */
     val showReviewCta: Boolean = false,
@@ -191,6 +193,7 @@ class HomeViewModel(
         val adhocRows = rows.filter {
             it.task.recurrence == Recurrence.ADHOC && (!it.completed || instanceByTask[it.task.id]?.completed == true)
         }
+        val weekEvents = ledgerRepository.eventsForWeek(weekId)
         HomeUiState(
             weekNumber = weekNumber,
             range = weekCalculator.rangeOf(),
@@ -202,8 +205,11 @@ class HomeViewModel(
             visibleAdhocTasks = adhocRows,
             // The ledger has no change feed of its own, but every entry moves the balance this
             // combine already watches, so reading the week here keeps the list current.
-            appliedPenalties = ledgerRepository.eventsForWeek(weekId)
+            appliedPenalties = weekEvents
                 .filter { it.source == PointsSource.PENALTY }
+                .sortedByDescending { it.timestamp },
+            todayRedemptions = weekEvents
+                .filter { it.source == PointsSource.REWARD && weekCalculator.dateOf(it.timestamp) == today }
                 .sortedByDescending { it.timestamp },
             balance = balance,
             showReviewCta = !weekStarted,

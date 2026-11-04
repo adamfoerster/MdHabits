@@ -37,6 +37,11 @@ make them pass, update the release notes, bump the version) are documented in
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
 
+### 0.23.0 — Rewards redeemed today on Home
+
+- Home now lists the rewards redeemed today (name and points spent) in their own section (the same "Redeemed" label as the week report), in a
+  clay colour distinct from penalties.
+
 ### 0.22.1 — App icon on the Windows installer
 
 - The Windows .exe installer, the installed app and its shortcuts now use the MdHabits icon.

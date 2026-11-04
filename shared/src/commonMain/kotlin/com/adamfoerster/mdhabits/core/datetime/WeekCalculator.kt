@@ -35,6 +35,9 @@ class WeekCalculator(
 ) {
     fun today(): LocalDate = clock.now().toLocalDateTime(timeZone).date
 
+    /** The local calendar day [instant] falls on. */
+    fun dateOf(instant: kotlinx.datetime.Instant): LocalDate = instant.toLocalDateTime(timeZone).date
+
     /** ISO (year, week) for [date]. */
     fun isoWeek(date: LocalDate): Pair<Int, Int> {
         val dow = date.dayOfWeek.isoDayNumber // Mon=1..Sun=7

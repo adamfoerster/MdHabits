@@ -163,6 +163,12 @@ fun HomeScreen(
                     state.appliedPenalties.forEach { PenaltyRow(it) }
                 }
 
+                // Points spent on rewards today, in the clay colour: spent, not lost like a penalty.
+                if (state.todayRedemptions.isNotEmpty()) {
+                    TaskSectionLabel(strings.repRedemptions, topPadding = 16, color = Paper.clay)
+                    state.todayRedemptions.forEach { PenaltyRow(it, Paper.clay, Paper.claySoft) }
+                }
+
                 // Earlier days of the weeks still open, collapsed by default: a day forgotten can
                 // still be checked off until its week closes.
                 if (state.pastDays.isNotEmpty()) {
@@ -347,15 +353,15 @@ private fun TaskSectionLabel(text: String, topPadding: Int = 12, color: Color = 
     )
 }
 
-/** An applied penalty: no checkbox (it can't be undone from here), name and cost in the danger colour. */
+/** A penalty or a redemption: no checkbox (it can't be undone from here), name and cost in [color]. */
 @Composable
-private fun PenaltyRow(event: PointsEvent) {
+private fun PenaltyRow(event: PointsEvent, color: Color = Paper.danger, soft: Color = Paper.dangerSoft) {
     Row(
         Modifier
             .fillMaxWidth()
             .drawBehind {
                 drawLine(
-                    Paper.dangerSoft,
+                    soft,
                     Offset(0f, size.height),
                     Offset(size.width, size.height),
                     1.5.dp.toPx(),
@@ -366,17 +372,17 @@ private fun PenaltyRow(event: PointsEvent) {
         horizontalArrangement = Arrangement.spacedBy(11.dp),
     ) {
         Box(
-            Modifier.size(20.dp).clip(RoundedCornerShape(5.dp)).background(Paper.dangerSoft),
+            Modifier.size(20.dp).clip(RoundedCornerShape(5.dp)).background(soft),
             contentAlignment = Alignment.Center,
         ) {
-            Text("−", style = sansStyle(14.sp, Paper.danger, FontWeight.Bold))
+            Text("−", style = sansStyle(14.sp, color, FontWeight.Bold))
         }
         Text(
             event.label,
             Modifier.weight(1f),
-            style = sansStyle(15.sp, Paper.danger, FontWeight.Medium),
+            style = sansStyle(15.sp, color, FontWeight.Medium),
         )
-        Text("−${-event.delta}", style = handStyle(17.sp, Paper.danger))
+        Text("−${-event.delta}", style = handStyle(17.sp, color))
     }
 }
 
