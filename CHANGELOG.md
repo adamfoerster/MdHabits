@@ -14,6 +14,8 @@ The short, user-facing version of these notes is shown in the app (the "What's n
   next to a "New task / New objective / …" button named after the selected type.
 - Rows have a colored icon plate per type and a chevron; objectives and values now show how many
   tasks are linked to them. An empty result offers to clear the search and filters.
+- A new task now starts as ad-hoc (one-off) instead of weekly, on *Cadastros* and in onboarding
+  (`NewTaskRecurrence` in `EntityFormSheet.kt`).
 - Implementation: the screen's strings moved into the nested `CadStrings` (`Strings.cad`), which
   replaced the unused `cadHeading*`, `newItem`, `metaObjectiveTemplate` and `metaValue` fields to stay
   under the 255-parameter limit. Search/count helpers live on `RegisterUiState` (`searchTasks`,

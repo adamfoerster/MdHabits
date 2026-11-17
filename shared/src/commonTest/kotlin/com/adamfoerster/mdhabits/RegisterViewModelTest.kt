@@ -14,6 +14,8 @@ import com.adamfoerster.mdhabits.domain.model.Reward
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.core.i18n.Lang
 import com.adamfoerster.mdhabits.core.i18n.stringsFor
+import com.adamfoerster.mdhabits.ui.components.EntityFormInitial
+import com.adamfoerster.mdhabits.ui.components.NewTaskRecurrence
 import com.adamfoerster.mdhabits.ui.screens.register.RegisterUiState
 import com.adamfoerster.mdhabits.ui.screens.register.RegisterViewModel
 import com.adamfoerster.mdhabits.ui.screens.register.TaskFilter
@@ -257,6 +259,12 @@ class RegisterViewModelTest : MainDispatcherTest() {
         assertEquals("2 tareas vinculadas", stringsFor(Lang.ES).cad.linkedTasks(2))
         assertEquals("No linked tasks", stringsFor(Lang.EN).cad.linkedTasks(0))
         assertEquals("Mostrando 3 de 12 tarefas", stringsFor(Lang.PT).cad.showing(3, 12, "tarefas"))
+    }
+
+    @Test
+    fun newTasksDefaultToAdhoc() {
+        assertEquals(Recurrence.ADHOC, NewTaskRecurrence)
+        assertEquals(Recurrence.ADHOC, EntityFormInitial().recurrence)
     }
 
     @Test

@@ -56,6 +56,11 @@ object ReleaseNotes {
                     "Objetivos e valores agora mostram quantas tarefas estão ligadas a eles.",
                     "Los objetivos y valores ahora muestran cuántas tareas tienen vinculadas.",
                 ),
+                LocalizedText(
+                    "New tasks start as one-off (ad-hoc) by default.",
+                    "Novas tarefas começam como avulsas por padrão.",
+                    "Las tareas nuevas empiezan como sueltas por defecto.",
+                ),
             ),
         ),
         ReleaseNote(

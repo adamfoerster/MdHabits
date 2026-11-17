@@ -44,11 +44,14 @@ enum class EntityKind { VALUE, OBJECTIVE, TASK, PENALTY, REWARD }
 /** A value/objective the task form can link the new task to. */
 data class LinkOption(val id: String, val label: String, val isValue: Boolean)
 
+/** The frequency preselected when creating a new task: a one-off (ad-hoc) task. */
+val NewTaskRecurrence: Recurrence = Recurrence.ADHOC
+
 /** Pre-filled field values that switch the sheet into edit mode. */
 data class EntityFormInitial(
     val name: String = "",
     val points: Int? = null,
-    val recurrence: Recurrence = Recurrence.WEEKLY,
+    val recurrence: Recurrence = NewTaskRecurrence,
     val daysOfWeek: List<DayOfWeek> = emptyList(),
     val linkIds: List<String> = emptyList(),
     val healthGoal: HealthGoal? = null,
@@ -104,7 +107,7 @@ fun EntityFormSheet(
     var confirmingDelete by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf(initial?.name ?: "") }
     var points by remember { mutableStateOf(initial?.points?.toString() ?: "") }
-    var recurrence by remember { mutableStateOf(initial?.recurrence ?: Recurrence.WEEKLY) }
+    var recurrence by remember { mutableStateOf(initial?.recurrence ?: NewTaskRecurrence) }
     var daysOfWeek by remember { mutableStateOf(initial?.daysOfWeek ?: emptyList()) }
     var linkIds by remember { mutableStateOf(initial?.linkIds ?: emptyList()) }
     var healthMetric by remember { mutableStateOf(initial?.healthGoal?.metric) }
