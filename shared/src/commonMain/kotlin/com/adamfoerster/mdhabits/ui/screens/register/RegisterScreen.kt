@@ -2,7 +2,6 @@ package com.adamfoerster.mdhabits.ui.screens.register
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -68,6 +66,7 @@ import com.adamfoerster.mdhabits.ui.components.TaskBoxIcon
 import com.adamfoerster.mdhabits.ui.components.TickIcon
 import com.adamfoerster.mdhabits.ui.components.ValueStarIcon
 import com.adamfoerster.mdhabits.ui.components.WarningIcon
+import com.adamfoerster.mdhabits.ui.components.dragHorizontalScroll
 import com.adamfoerster.mdhabits.ui.components.frequencyLabel
 import com.adamfoerster.mdhabits.ui.components.handStyle
 import com.adamfoerster.mdhabits.ui.components.paperCard
@@ -138,7 +137,7 @@ fun RegisterScreen(
                 val counts = state.filterCounts(matchingTasks)
                 Row(
                     Modifier
-                        .horizontalScroll(rememberScrollState())
+                        .dragHorizontalScroll()
                         .padding(horizontal = 20.dp)
                         .padding(top = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),

@@ -5,6 +5,22 @@ All notable changes to MdHabits. Versions follow [Semantic Versioning](https://s
 The short, user-facing version of these notes is shown in the app (the "What's new" popup and
 *Settings → About → Release notes*) and lives in `ReleaseNotes.kt`.
 
+### 0.27.0 — Android home-screen widget
+
+- New Android home-screen widget listing the tasks due today (daily, habits, and days-of-week tasks
+  scheduled for today) and this week's weekly tasks; ad-hoc tasks stay in the app. Tapping a row
+  checks it off or undoes it, crediting or reversing its points like Home does; tapping the title
+  opens the app. Pending tasks come first, and the labels follow the app's language.
+- The widget redraws after every tap, whenever the app goes to the background, and every 30 minutes
+  (so a new day shows up). Before drawing it re-reads the notes changed on disk, so edits synced
+  from another device or made in Obsidian appear too.
+- Implementation: `WidgetTasksUseCase` / `widgetSnapshot` (shared, tested in `WidgetTasksTest`) build
+  the rows and toggle through `CompleteTaskUseCase`; a toggle the widget doesn't list (ad-hoc, not due,
+  deleted) is ignored. The Glance widget (`androidApp/.../widget/TasksWidget.kt`, new
+  `androidx.glance:glance-appwidget` dependency) reaches the shared code through
+  `platform/AndroidWidgetData`, which starts Koin when the widget runs without the activity and
+  flushes the pending vault write after each toggle.
+
 ### 0.26.0 — Redesigned management screen
 
 - *Cadastros* was redesigned: the five item types are a segmented selector with an icon each, and a
@@ -16,6 +32,8 @@ The short, user-facing version of these notes is shown in the app (the "What's n
   tasks are linked to them. An empty result offers to clear the search and filters.
 - A new task now starts as ad-hoc (one-off) instead of weekly, on *Cadastros* and in onboarding
   (`NewTaskRecurrence` in `EntityFormSheet.kt`).
+- The task filter chips can be dragged sideways with the mouse on Desktop (`Modifier.dragHorizontalScroll`
+  in `Paper.kt`); on touch screens they already scrolled with a swipe.
 - Implementation: the screen's strings moved into the nested `CadStrings` (`Strings.cad`), which
   replaced the unused `cadHeading*`, `newItem`, `metaObjectiveTemplate` and `metaValue` fields to stay
   under the 255-parameter limit. Search/count helpers live on `RegisterUiState` (`searchTasks`,

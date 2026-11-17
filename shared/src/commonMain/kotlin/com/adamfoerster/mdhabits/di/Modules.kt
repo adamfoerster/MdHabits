@@ -34,6 +34,7 @@ import com.adamfoerster.mdhabits.domain.usecase.RedeemRewardUseCase
 import com.adamfoerster.mdhabits.domain.usecase.ReminderSyncer
 import com.adamfoerster.mdhabits.domain.usecase.SyncHealthUseCase
 import com.adamfoerster.mdhabits.domain.usecase.SyncMdPrayerUseCase
+import com.adamfoerster.mdhabits.domain.usecase.WidgetTasksUseCase
 import com.adamfoerster.mdhabits.storage.CachedVaultFileSystem
 import com.adamfoerster.mdhabits.storage.VaultFileSystem
 import com.adamfoerster.mdhabits.storage.VaultMigrator
@@ -124,6 +125,7 @@ val domainModule = module {
     factory { PenalizeMissedHabitsUseCase(get(), get(), get()) }
     factory { SyncHealthUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { ReminderSyncer(get(), get(), get(), get()) }
+    factory { WidgetTasksUseCase(get(), get(), get()) }
 }
 
 val viewModelModule = module {

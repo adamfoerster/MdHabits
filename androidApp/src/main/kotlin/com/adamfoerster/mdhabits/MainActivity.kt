@@ -11,6 +11,10 @@ import com.adamfoerster.mdhabits.di.initKoinOnce
 import com.adamfoerster.mdhabits.platform.AndroidHealthBridge
 import com.adamfoerster.mdhabits.platform.AndroidNotificationBridge
 import com.adamfoerster.mdhabits.platform.AndroidVaultBridge
+import com.adamfoerster.mdhabits.widget.TasksWidget
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -43,5 +47,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             App()
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Whatever was checked off in the app shows on the home-screen widget once the user leaves.
+        val context = applicationContext
+        CoroutineScope(Dispatchers.Default).launch { runCatching { TasksWidget.refresh(context) } }
     }
 }

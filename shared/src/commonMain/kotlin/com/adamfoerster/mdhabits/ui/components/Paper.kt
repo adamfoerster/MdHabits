@@ -2,7 +2,12 @@ package com.adamfoerster.mdhabits.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -110,6 +115,18 @@ fun Modifier.paperClick(enabled: Boolean = true, onClick: () -> Unit): Modifier 
     enabled = enabled,
     onClick = onClick,
 )
+
+/**
+ * Horizontal scroll that also follows a mouse drag. Touch drags are handled by the scroll itself;
+ * the outer `draggable` only sees what it leaves unconsumed — on Desktop, the mouse drag.
+ */
+@Composable
+fun Modifier.dragHorizontalScroll(state: ScrollState = rememberScrollState()): Modifier {
+    val drag = rememberDraggableState { delta -> state.dispatchRawDelta(-delta) }
+    return this
+        .draggable(drag, Orientation.Horizontal)
+        .horizontalScroll(state)
+}
 
 /** Card surface: warm white with a hairline border. */
 fun Modifier.paperCard(radius: Int = 13, border: Color = Paper.border, bg: Color = Paper.card): Modifier =

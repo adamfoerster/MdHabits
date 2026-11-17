@@ -44,6 +44,19 @@
             </intent-filter>
         </receiver>
 
+        <!-- Home-screen widget: today's and this week's tasks, checked off in place. -->
+        <receiver
+            android:exported="false"
+            android:label="@string/app_name"
+            android:name=".widget.TasksWidgetReceiver">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tasks_widget_info" />
+        </receiver>
+
         <!-- Explains how health data is used; Health Connect links here from its permission screen. -->
         <activity
             android:exported="true"

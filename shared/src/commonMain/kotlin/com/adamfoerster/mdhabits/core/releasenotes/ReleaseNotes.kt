@@ -44,6 +44,16 @@ object ReleaseNotes {
 
     val all: List<ReleaseNote> = listOf(
         ReleaseNote(
+            version = "0.27.0",
+            features = listOf(
+                LocalizedText(
+                    "Android home-screen widget: see today's and this week's tasks and check them off without opening the app.",
+                    "Widget para a tela inicial do Android: veja as tarefas do dia e da semana e marque-as sem abrir o app.",
+                    "Widget para la pantalla de inicio de Android: mira las tareas del día y de la semana y márcalas sin abrir la app.",
+                ),
+            ),
+        ),
+        ReleaseNote(
             version = "0.26.0",
             features = listOf(
                 LocalizedText(

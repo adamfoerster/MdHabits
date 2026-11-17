@@ -16,6 +16,7 @@ dependencies {
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.health.connect)
+    implementation(libs.androidx.glance.appwidget)
 
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
@@ -29,8 +30,8 @@ android {
         applicationId = "com.adamfoerster.mdhabits"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 37
-        versionName = "0.26.0"
+        versionCode = 38
+        versionName = "0.27.0"
     }
     packaging {
         resources {
