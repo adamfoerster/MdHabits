@@ -15,6 +15,7 @@ import com.adamfoerster.mdhabits.domain.repository.PointsLedgerRepository
 import com.adamfoerster.mdhabits.domain.usecase.ApplyPenaltyUseCase
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
 import com.adamfoerster.mdhabits.ui.screens.home.HomeViewModel
+import com.adamfoerster.mdhabits.ui.screens.home.pointsSign
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.DateTimeUnit
@@ -124,6 +125,25 @@ class PastDaysTest : MainDispatcherTest() {
         assertFalse(vm.state.value.pastDays.first().tasks.single { it.task.id == "h1" }.missed)
         // Today's row is never flagged: the day isn't over.
         assertFalse(vm.state.value.todayTasks.any { it.missed })
+    }
+
+    @Test
+    fun aHabitShowsBothSignsOnlyWhileItsDayIsOpenAndUndone() = runTest {
+        val tasks = InMemoryTaskRepository()
+        val floss = Task("h1", "Floss", points = 4, recurrence = Recurrence.HABIT, habitSince = yesterday)
+        tasks.upsert(floss)
+        tasks.upsert(Task("d1", "Read", points = 2, recurrence = Recurrence.DAILY))
+        val vm = newViewModel(tasks)
+        keepHot(vm.state)
+
+        assertEquals("±", vm.state.value.todayTasks.single { it.task.id == "h1" }.pointsSign)
+        assertEquals("+", vm.state.value.todayTasks.single { it.task.id == "d1" }.pointsSign)
+        assertEquals("−", vm.state.value.pastDays.first().tasks.single { it.task.id == "h1" }.pointsSign)
+
+        vm.onToggleComplete(floss, completed = true)
+        assertEquals("+", vm.state.value.todayTasks.single { it.task.id == "h1" }.pointsSign)
+        vm.onTogglePastDay(floss, yesterday, completed = true)
+        assertEquals("+", vm.state.value.pastDays.first().tasks.single { it.task.id == "h1" }.pointsSign)
     }
 
     @Test

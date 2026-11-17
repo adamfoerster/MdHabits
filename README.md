@@ -15,6 +15,8 @@ an Obsidian vault), so your data stays yours and remains editable outside the ap
 - **Type-safe Navigation Compose** — screen routing
 - **kotlinx-datetime / coroutines / serialization**
 
+Building requires **JDK 25** (Gradle provisions it automatically if missing).
+
 ## Running the apps
 
 - **Android:** `./gradlew :androidApp:assembleDebug` (or run the `androidApp` config in your IDE)
@@ -36,6 +38,16 @@ make them pass, update the release notes, bump the version) are documented in
 ## Release notes
 
 Versions follow [Semantic Versioning](https://semver.org/). Newest first.
+
+### 0.23.3 — Tooling for JDK 25
+
+- Build tooling now runs on JDK 25: the Gradle daemon JVM is pinned to Java 25 (auto-provisioned
+  through the foojay toolchain resolver). No change to the apps.
+
+### 0.23.2 — Checked habits show only "+"
+
+- A habit that is checked off now shows its points with just "+"; the "±" stays only on habits
+  still undone for the day.
 
 ### 0.23.1 — Missed habit days stand out
 

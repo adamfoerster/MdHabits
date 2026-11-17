@@ -423,11 +423,7 @@ private fun TaskRow(row: HomeTaskRow, strings: Strings, onToggle: (Boolean) -> U
         }
         // A habit's points go both ways: earned when done, charged when the day ends undone —
         // so a day that did end undone shows only the loss, in terracotta.
-        val sign = when {
-            row.missed -> "−"
-            row.task.recurrence == Recurrence.HABIT -> "±"
-            else -> "+"
-        }
+        val sign = row.pointsSign
         Text(
             "$sign${row.task.points}",
             style = handStyle(17.sp, if (done) Paper.donePoints else if (row.missed) Paper.accent else Paper.pointsTint),

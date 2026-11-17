@@ -43,6 +43,17 @@ data class HomeTaskRow(
     val missed: Boolean = false,
 )
 
+/**
+ * The sign shown before a row's points. A habit's points go both ways, so it reads "±" while its day
+ * is still open and undone, "+" once checked off, and "−" for a past day that ended undone.
+ */
+val HomeTaskRow.pointsSign: String
+    get() = when {
+        missed -> "−"
+        task.recurrence == Recurrence.HABIT && !completed -> "±"
+        else -> "+"
+    }
+
 /** One month of the week picker: its calendar plus which way the month arrows can still go. */
 data class WeekPickerMonth(
     val grid: MonthGrid,
