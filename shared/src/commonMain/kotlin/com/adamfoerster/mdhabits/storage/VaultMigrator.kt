@@ -17,6 +17,8 @@ class VaultMigrator(
 ) {
 
     suspend fun migrateTo(selection: VaultSelection) {
+        // Writes still queued belong to the current root: apply them before it stops being it.
+        vault.flush()
         val snapshot = VAULT_DIRS.flatMap { dir ->
             vault.list(dir).mapNotNull { name ->
                 vault.read(dir, name)?.let { content -> Note(dir, name, content) }
@@ -29,6 +31,7 @@ class VaultMigrator(
                 vault.write(note.dir, note.name, note.content)
             }
         }
+        vault.flush()
     }
 
     private data class Note(val dir: String, val name: String, val content: String)

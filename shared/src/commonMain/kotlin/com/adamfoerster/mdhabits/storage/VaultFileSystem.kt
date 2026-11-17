@@ -41,4 +41,21 @@ interface VaultFileSystem {
 
     /** Like [read], but against the folder referenced by [ref] instead of the persisted vault. */
     suspend fun readIn(ref: String, dir: String, name: String): String?
+
+    /**
+     * Waits until every write and delete accepted so far has reached the files. A no-op for the
+     * platform implementations, which write synchronously; [CachedVaultFileSystem] writes in the
+     * background and needs this before the vault folder changes (see [VaultMigrator]).
+     */
+    suspend fun flush() = Unit
+
+    companion object {
+        /**
+         * The last-modified stamp [listModified] reports for a note whose write is still pending:
+         * the same value [com.adamfoerster.mdhabits.data.markdown.FolderStamps] records for the
+         * app's own writes, so a note waiting to be written is never re-read over its newer
+         * in-memory version.
+         */
+        const val PENDING_STAMP = -1L
+    }
 }

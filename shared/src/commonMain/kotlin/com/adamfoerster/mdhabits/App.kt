@@ -22,12 +22,15 @@ import com.adamfoerster.mdhabits.core.releasenotes.ReleaseNotesTracker
 import com.adamfoerster.mdhabits.core.settings.AppSettings
 import com.adamfoerster.mdhabits.data.markdown.VaultWatcher
 import com.adamfoerster.mdhabits.domain.usecase.ReminderSyncer
+import com.adamfoerster.mdhabits.storage.VaultFileSystem
 import com.adamfoerster.mdhabits.ui.components.ReleaseNotesSheet
 import com.adamfoerster.mdhabits.ui.navigation.MainGraph
 import com.adamfoerster.mdhabits.ui.navigation.MainScaffold
 import com.adamfoerster.mdhabits.ui.navigation.OnboardingGraph
 import com.adamfoerster.mdhabits.ui.onboarding.OnboardingFlow
 import com.adamfoerster.mdhabits.ui.theme.MdHabitsTheme
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
 
@@ -38,12 +41,20 @@ fun App() = KoinContext {
     val lang by localeController.lang.collectAsStateWithLifecycle()
     val startOnboarded = remember { settings.onboardingComplete }
     val vaultWatcher = koinInject<VaultWatcher>()
+    val vault = koinInject<VaultFileSystem>()
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // While the app is in the foreground, keep the loaded notes in step with the vault files so
-    // changes synced from another device (e.g. by Syncthing) show up without a restart.
+    // changes synced from another device (e.g. by Syncthing) show up without a restart. Changes
+    // reach the files in the background; leaving the foreground makes sure none is left queued.
     LaunchedEffect(lifecycleOwner, vaultWatcher) {
-        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) { vaultWatcher.watch() }
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            try {
+                vaultWatcher.watch()
+            } finally {
+                withContext(NonCancellable) { vault.flush() }
+            }
+        }
     }
 
     // Keep the scheduled task reminders in step with the tasks (a no-op where reminders aren't supported).

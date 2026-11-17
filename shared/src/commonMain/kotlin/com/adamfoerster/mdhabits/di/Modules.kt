@@ -34,7 +34,12 @@ import com.adamfoerster.mdhabits.domain.usecase.RedeemRewardUseCase
 import com.adamfoerster.mdhabits.domain.usecase.ReminderSyncer
 import com.adamfoerster.mdhabits.domain.usecase.SyncHealthUseCase
 import com.adamfoerster.mdhabits.domain.usecase.SyncMdPrayerUseCase
+import com.adamfoerster.mdhabits.storage.CachedVaultFileSystem
+import com.adamfoerster.mdhabits.storage.VaultFileSystem
 import com.adamfoerster.mdhabits.storage.VaultMigrator
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import com.adamfoerster.mdhabits.ui.onboarding.OnboardingViewModel
 import com.adamfoerster.mdhabits.ui.screens.home.HomeViewModel
 import com.adamfoerster.mdhabits.ui.screens.redeem.RedeemViewModel
@@ -47,18 +52,34 @@ import com.adamfoerster.mdhabits.ui.screens.theme.ThemeViewModel
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.qualifier.named
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
 /** Platform-provided bindings: [com.adamfoerster.mdhabits.core.settings.AppSettings],
  *  [com.adamfoerster.mdhabits.storage.VaultPicker],
- *  [com.adamfoerster.mdhabits.storage.VaultFileSystem], and
+ *  the real-files [com.adamfoerster.mdhabits.storage.VaultFileSystem] (qualified [PlatformVault]),
+ *  [com.adamfoerster.mdhabits.storage.NoteCacheStorage],
  *  [com.adamfoerster.mdhabits.domain.repository.HealthDataSource], and
  *  [com.adamfoerster.mdhabits.domain.repository.ReminderScheduler]. */
 expect fun platformModule(): Module
 
+/** Qualifies the platform's [VaultFileSystem] over the real files; everything else uses the cached one. */
+val PlatformVault = named("platformVault")
+
 val dataModule = module {
+    // The vault as the app sees it: notes kept in memory (and in an app-private snapshot between
+    // launches), with writes applied to the real files in the background.
+    single<VaultFileSystem> {
+        val settings = get<AppSettings>()
+        CachedVaultFileSystem(
+            delegate = get(PlatformVault),
+            storage = get(),
+            vaultRef = { settings.vaultRef },
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        )
+    }
     // One shared store: task instances, reviews, and the ledger live in the same week notes.
     single {
         val settings = get<AppSettings>()

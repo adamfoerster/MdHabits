@@ -44,6 +44,21 @@ object ReleaseNotes {
 
     val all: List<ReleaseNote> = listOf(
         ReleaseNote(
+            version = "0.25.0",
+            features = listOf(
+                LocalizedText(
+                    "Faster startup: the app only reloads the notes that changed since you last opened it.",
+                    "Abertura mais rápida: o app só recarrega as notas que mudaram desde a última vez que você o abriu.",
+                    "Inicio más rápido: la app solo vuelve a cargar las notas que cambiaron desde la última vez que la abriste.",
+                ),
+                LocalizedText(
+                    "Your changes appear instantly and are saved to the notes in the background.",
+                    "Suas alterações aparecem na hora e são salvas nas notas em segundo plano.",
+                    "Tus cambios aparecen al instante y se guardan en las notas en segundo plano.",
+                ),
+            ),
+        ),
+        ReleaseNote(
             version = "0.24.0",
             features = listOf(
                 LocalizedText(

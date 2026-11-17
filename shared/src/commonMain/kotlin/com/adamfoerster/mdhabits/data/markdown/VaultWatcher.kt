@@ -73,21 +73,19 @@ internal class FolderStamps(private val vault: VaultFileSystem, private val dir:
     }
 
     /**
-     * Records that the app itself wrote [name]. Its real stamp isn't known yet, so the next
-     * [changes] re-reads it once (getting back what was written); what matters is that the note
-     * is now tracked, so a later deletion on another device is noticed.
+     * Records that the app itself wrote [name]. Its real stamp isn't known yet: while the write is
+     * still pending (see `CachedVaultFileSystem`) the listing reports the same
+     * [VaultFileSystem.PENDING_STAMP], so the note isn't re-read over its newer in-memory version;
+     * once written, the next [changes] re-reads it once (getting back what was written). What
+     * matters is that the note is now tracked, so a later deletion on another device is noticed.
      */
     fun written(name: String) {
-        stamps[name] = UNKNOWN
+        stamps[name] = VaultFileSystem.PENDING_STAMP
     }
 
     /** Records that the app itself deleted [name]. */
     fun deleted(name: String) {
         stamps.remove(name)
-    }
-
-    private companion object {
-        const val UNKNOWN = -1L
     }
 }
 

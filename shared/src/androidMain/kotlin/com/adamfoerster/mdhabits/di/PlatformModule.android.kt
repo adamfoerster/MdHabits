@@ -9,8 +9,10 @@ import com.adamfoerster.mdhabits.platform.AndroidAppInfo
 import com.adamfoerster.mdhabits.platform.AndroidAppSettings
 import com.adamfoerster.mdhabits.platform.AndroidHealthConnectSource
 import com.adamfoerster.mdhabits.platform.AndroidVaultBridge
+import com.adamfoerster.mdhabits.platform.AndroidNoteCacheStorage
 import com.adamfoerster.mdhabits.platform.AndroidVaultFileSystem
 import com.adamfoerster.mdhabits.platform.AndroidVaultPicker
+import com.adamfoerster.mdhabits.storage.NoteCacheStorage
 import com.adamfoerster.mdhabits.storage.VaultFileSystem
 import com.adamfoerster.mdhabits.storage.VaultPicker
 import org.koin.core.module.Module
@@ -38,10 +40,15 @@ actual fun platformModule(): Module = module {
             requireNotNull(AndroidVaultBridge.appContext) { "AndroidVaultBridge.appContext not set" },
         )
     }
-    single<VaultFileSystem> {
+    single<VaultFileSystem>(PlatformVault) {
         AndroidVaultFileSystem(
             requireNotNull(AndroidVaultBridge.appContext) { "AndroidVaultBridge.appContext not set" },
             get(),
+        )
+    }
+    single<NoteCacheStorage> {
+        AndroidNoteCacheStorage(
+            requireNotNull(AndroidVaultBridge.appContext) { "AndroidVaultBridge.appContext not set" },
         )
     }
 }

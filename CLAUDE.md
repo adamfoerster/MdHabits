@@ -209,6 +209,14 @@ Keep the CHANGELOG.md heading, the `ReleaseNotes.kt` entry, `versionName`, `MARK
   list in `di/Modules.kt`. Syncthing conflict copies (`*.sync-conflict-*.md`) are filtered out in
   `FolderStamps`, and week notes are only accepted from the file named after their own weekId —
   otherwise a stale copy of the same week overrides the real note.
+- Everything goes through `storage/CachedVaultFileSystem` (the `VaultFileSystem` Koin binding), which
+  wraps the platform one (bound under the `PlatformVault` qualifier; inject that only to touch the
+  real files directly). It serves unchanged notes from memory and from an app-private snapshot
+  (`NoteCacheStorage`, so a launch only reads files whose stamp changed). Writes/deletes are queued and
+  applied in the background: `write` returns before the file exists, and while a write is pending
+  `listModified` reports it as `VaultFileSystem.PENDING_STAMP` (what `FolderStamps.written` records).
+  Call `flush()` before anything that changes the root or needs the files on disk. In tests,
+  `backgroundScope` work isn't run by `advanceUntilIdle`, so advance time and call `runCurrent()`.
 - `VaultFileSystem` implementations resolve the storage root from `AppSettings.vaultRef`
   on **every call**. Any flow that changes the vault (onboarding finish, Settings folder
   pick) must go through `storage/VaultMigrator` *before* writing notes — persisting the

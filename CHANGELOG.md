@@ -5,6 +5,21 @@ All notable changes to MdHabits. Versions follow [Semantic Versioning](https://s
 The short, user-facing version of these notes is shown in the app (the "What's new" popup and
 *Settings → About → Release notes*) and lives in `ReleaseNotes.kt`.
 
+### 0.25.0 — Faster, non-blocking vault access
+
+- The app keeps an in-memory copy of every note, saved app-private between launches
+  (`note-cache.json`; never inside the vault). On launch only the files whose last-modified time
+  changed since that copy are read again, which makes startup much faster on Android's Storage
+  Access Framework. Files edited by another app while MdHabits runs are still picked up within
+  ~3 s and replace the in-memory version.
+- Changes are applied to memory first and queued as pending writes. A background writer then
+  applies them to the real files, so the screen never waits on file I/O. Several writes to one note
+  collapse into the last one. While a write is pending, the vault watcher doesn't re-read the
+  stale file over it. Leaving the foreground and switching the vault folder flush the queue first.
+- Implementation: `storage/CachedVaultFileSystem` wraps the platform `VaultFileSystem` (now bound
+  under the `PlatformVault` qualifier), with a per-platform `NoteCacheStorage`. A provider that
+  reports no modification time is always read from disk.
+
 ### 0.24.0 — "What's new" message
 
 - After an update, the app shows a short "What's new" message once, listing new features and fixes.

@@ -7,7 +7,7 @@ plugins {
 }
 
 // Keep in sync with Android versionName and iOS MARKETING_VERSION (see CLAUDE.md).
-val appVersion = "0.24.0"
+val appVersion = "0.25.0"
 
 dependencies {
     implementation(projects.shared)

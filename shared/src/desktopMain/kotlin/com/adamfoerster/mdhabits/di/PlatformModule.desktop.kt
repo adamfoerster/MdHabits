@@ -8,8 +8,10 @@ import com.adamfoerster.mdhabits.domain.repository.UnsupportedHealthDataSource
 import com.adamfoerster.mdhabits.domain.repository.UnsupportedReminderScheduler
 import com.adamfoerster.mdhabits.platform.DesktopAppInfo
 import com.adamfoerster.mdhabits.platform.DesktopAppSettings
+import com.adamfoerster.mdhabits.platform.DesktopNoteCacheStorage
 import com.adamfoerster.mdhabits.platform.DesktopVaultFileSystem
 import com.adamfoerster.mdhabits.platform.DesktopVaultPicker
+import com.adamfoerster.mdhabits.storage.NoteCacheStorage
 import com.adamfoerster.mdhabits.storage.VaultFileSystem
 import com.adamfoerster.mdhabits.storage.VaultPicker
 import org.koin.core.module.Module
@@ -21,5 +23,6 @@ actual fun platformModule(): Module = module {
     single<VaultPicker> { DesktopVaultPicker() }
     single<HealthDataSource> { UnsupportedHealthDataSource }
     single<ReminderScheduler> { UnsupportedReminderScheduler }
-    single<VaultFileSystem> { DesktopVaultFileSystem(get()) }
+    single<VaultFileSystem>(PlatformVault) { DesktopVaultFileSystem(get()) }
+    single<NoteCacheStorage> { DesktopNoteCacheStorage() }
 }
