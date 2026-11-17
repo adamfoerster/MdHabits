@@ -225,3 +225,130 @@ fun ListTabIcon(color: Color, size: Dp = 21.dp) {
         drawLine(color, grid(4.8f, 17.4f), grid(13.2f, 17.4f), w, StrokeCap.Round)
     }
 }
+
+/* --------- management (Cadastros) icons; stroke widths are in 24-grid units, like the SVGs --------- */
+
+private fun DrawScope.gridStroke(width: Float) = stroke(size.width * width / 24f)
+
+private fun DrawScope.polyline(color: Color, width: Float, vararg points: Pair<Float, Float>, closed: Boolean = false) {
+    val p = Path().apply {
+        points.forEachIndexed { i, (x, y) ->
+            val o = grid(x, y)
+            if (i == 0) moveTo(o.x, o.y) else lineTo(o.x, o.y)
+        }
+        if (closed) close()
+    }
+    drawPath(p, color, style = gridStroke(width))
+}
+
+private fun DrawScope.gridRoundRect(color: Color, width: Float, x: Float, y: Float, w: Float, h: Float, r: Float) {
+    drawRoundRect(
+        color,
+        topLeft = grid(x, y),
+        size = androidx.compose.ui.geometry.Size(size.width * w / 24f, size.height * h / 24f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.width * r / 24f),
+        style = gridStroke(width),
+    )
+}
+
+/** Checkbox square — the Tasks tab. */
+@Composable
+fun TaskBoxIcon(color: Color, size: Dp = 20.dp, width: Float = 1.8f) {
+    Canvas(Modifier.size(size)) {
+        gridRoundRect(color, width, 4f, 4f, 16f, 16f, 4f)
+        polyline(color, width, 8.5f to 12.5f, 11f to 15f, 15.5f to 10f)
+    }
+}
+
+/** Bare checkmark — the task row plate. */
+@Composable
+fun TickIcon(color: Color, size: Dp = 18.dp, width: Float = 2.4f) {
+    Canvas(Modifier.size(size)) { polyline(color, width, 6f to 12.5f, 10f to 16.5f, 18f to 7.5f) }
+}
+
+/** Concentric target — objectives. */
+@Composable
+fun TargetIcon(color: Color, size: Dp = 20.dp, width: Float = 1.8f, dot: Boolean = true) {
+    Canvas(Modifier.size(size)) {
+        val unit = this.size.width / 24f
+        drawCircle(color, radius = unit * (if (dot) 8f else 7.5f), center = grid(12f, 12f), style = gridStroke(width))
+        drawCircle(color, radius = unit * (if (dot) 4f else 3.5f), center = grid(12f, 12f), style = gridStroke(width))
+        if (dot) drawCircle(color, radius = unit * 0.8f, center = grid(12f, 12f))
+    }
+}
+
+/** Five-point star outline — values. */
+@Composable
+fun ValueStarIcon(color: Color, size: Dp = 20.dp, width: Float = 1.8f) {
+    Canvas(Modifier.size(size)) {
+        polyline(
+            color, width,
+            12f to 4f, 14.4f to 8.9f, 19.8f to 9.7f, 15.9f to 13.5f, 16.8f to 18.9f,
+            12f to 16.4f, 7.2f to 18.9f, 8.1f to 13.5f, 4.2f to 9.7f, 9.6f to 8.9f,
+            closed = true,
+        )
+    }
+}
+
+/** Warning triangle — the Penalties tab. */
+@Composable
+fun WarningIcon(color: Color, size: Dp = 20.dp, width: Float = 1.8f) {
+    Canvas(Modifier.size(size)) {
+        polyline(color, width, 12f to 3.5f, 20.5f to 18.5f, 3.5f to 18.5f, closed = true)
+        polyline(color, width, 12f to 10f, 12f to 14f)
+        polyline(color, width, 12f to 16.8f, 12f to 17f)
+    }
+}
+
+/** Horizontal bar — the penalty row plate. */
+@Composable
+fun MinusIcon(color: Color, size: Dp = 18.dp, width: Float = 2.4f) {
+    Canvas(Modifier.size(size)) { polyline(color, width, 6f to 12f, 18f to 12f) }
+}
+
+/** Gift box, with or without its bow — rewards. */
+@Composable
+fun GiftBoxIcon(color: Color, size: Dp = 20.dp, width: Float = 1.8f, bow: Boolean = true) {
+    Canvas(Modifier.size(size)) {
+        gridRoundRect(color, width, 4f, 9f, 16f, 11f, 2f)
+        polyline(color, width, 3f to 9f, 21f to 9f)
+        polyline(color, width, 12f to 9f, 12f to 20f)
+        if (bow) {
+            val p = Path().apply {
+                fun c(x1: Float, y1: Float, x2: Float, y2: Float, x3: Float, y3: Float) {
+                    val a = grid(x1, y1); val b = grid(x2, y2); val e = grid(x3, y3)
+                    cubicTo(a.x, a.y, b.x, b.y, e.x, e.y)
+                }
+                val start = grid(12f, 9f)
+                moveTo(start.x, start.y)
+                c(10.5f, 6f, 7f, 5.5f, 7f, 7.8f); c(7f, 9f, 9.5f, 9f, 12f, 9f)
+                c(13.5f, 6f, 17f, 5.5f, 17f, 7.8f); c(17f, 9f, 14.5f, 9f, 12f, 9f)
+            }
+            drawPath(p, color, style = gridStroke(width))
+        }
+    }
+}
+
+@Composable
+fun SearchIcon(color: Color, size: Dp = 18.dp, width: Float = 2f) {
+    Canvas(Modifier.size(size)) {
+        drawCircle(color, radius = this.size.width * 6.5f / 24f, center = grid(11f, 11f), style = gridStroke(width))
+        polyline(color, width, 16f to 16f, 20f to 20f)
+    }
+}
+
+@Composable
+fun CloseIcon(color: Color, size: Dp = 14.dp, width: Float = 2.4f) {
+    Canvas(Modifier.size(size)) {
+        polyline(color, width, 6f to 6f, 18f to 18f)
+        polyline(color, width, 18f to 6f, 6f to 18f)
+    }
+}
+
+@Composable
+fun PlusIcon(color: Color, size: Dp = 16.dp, width: Float = 2.6f) {
+    Canvas(Modifier.size(size)) {
+        polyline(color, width, 12f to 5f, 12f to 19f)
+        polyline(color, width, 5f to 12f, 19f to 12f)
+    }
+}

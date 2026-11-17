@@ -1,17 +1,25 @@
 package com.adamfoerster.mdhabits.ui.screens.register
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,24 +29,46 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.adamfoerster.mdhabits.core.i18n.LocalStrings
 import com.adamfoerster.mdhabits.core.i18n.Strings
+import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.repository.HealthDataSource
 import com.adamfoerster.mdhabits.domain.repository.ReminderScheduler
+import com.adamfoerster.mdhabits.ui.components.Chevron
+import com.adamfoerster.mdhabits.ui.components.CloseIcon
 import com.adamfoerster.mdhabits.ui.components.EntityFormInitial
 import com.adamfoerster.mdhabits.ui.components.EntityFormSheet
 import com.adamfoerster.mdhabits.ui.components.EntityKind
-import com.adamfoerster.mdhabits.ui.components.frequencyLabel
-import com.adamfoerster.mdhabits.ui.components.GlyphPlate
+import com.adamfoerster.mdhabits.ui.components.GiftBoxIcon
 import com.adamfoerster.mdhabits.ui.components.Kicker
 import com.adamfoerster.mdhabits.ui.components.LinkOption
+import com.adamfoerster.mdhabits.ui.components.MinusIcon
 import com.adamfoerster.mdhabits.ui.components.PaperToast
-import com.adamfoerster.mdhabits.ui.components.SelectChip
+import com.adamfoerster.mdhabits.ui.components.PlusIcon
+import com.adamfoerster.mdhabits.ui.components.SearchIcon
+import com.adamfoerster.mdhabits.ui.components.TargetIcon
+import com.adamfoerster.mdhabits.ui.components.TaskBoxIcon
+import com.adamfoerster.mdhabits.ui.components.TickIcon
+import com.adamfoerster.mdhabits.ui.components.ValueStarIcon
+import com.adamfoerster.mdhabits.ui.components.WarningIcon
+import com.adamfoerster.mdhabits.ui.components.frequencyLabel
 import com.adamfoerster.mdhabits.ui.components.handStyle
 import com.adamfoerster.mdhabits.ui.components.paperCard
 import com.adamfoerster.mdhabits.ui.components.paperClick
@@ -53,14 +83,10 @@ private enum class CadTab { TASKS, OBJECTIVES, VALUES, PENALTIES, REWARDS }
 /** One rendered row of the cadastros list. */
 private data class CadItem(
     val id: String,
-    val glyph: String,
-    val glyphBg: Color,
-    val glyphColor: Color,
     val name: String,
     val meta: String,
     val pointsLabel: String,
     val pointsColor: Color,
-    val handGlyph: Boolean = true,
 )
 
 @Composable
@@ -74,62 +100,106 @@ fun RegisterScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var tab by remember { mutableStateOf(CadTab.TASKS) }
     var taskFilter by remember { mutableStateOf(TaskFilter.ALL) }
+    var query by remember { mutableStateOf("") }
     var showSheet by remember { mutableStateOf(false) }
     var editingId by remember { mutableStateOf<String?>(null) }
     val toast = rememberToastState()
 
+    val plural = tabLabel(strings, tab).lowercase()
+    val matchingTasks = state.searchTasks(query)
+    val items = itemsFor(strings, tab, state, query, matchingTasks.filter(taskFilter::matches))
+    val total = totalFor(tab, state)
+
     Box(Modifier.fillMaxSize().background(Paper.bg)) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp)) {
-                Kicker(strings.tabRegister)
-                Text(strings.cadTitle, Modifier.padding(top = 2.dp), style = handStyle(34.sp))
+        Column(Modifier.fillMaxSize()) {
+            Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp)) {
+                Kicker(strings.tabRegister, color = Paper.subtle)
+                Text(strings.cadTitle, Modifier.padding(top = 2.dp), style = handStyle(38.sp, weight = FontWeight.Bold))
             }
 
-            // Category chips.
-            Row(
-                Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(start = 24.dp, end = 24.dp, top = 14.dp, bottom = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            CadTabSelector(
+                strings = strings,
+                selected = tab,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp),
             ) {
-                CadTab.entries.forEach { candidate ->
-                    SelectChip(
-                        label = tabLabel(strings, candidate),
-                        selected = tab == candidate,
-                    ) { tab = candidate }
+                tab = it
+                taskFilter = TaskFilter.ALL
+            }
+
+            SearchField(
+                query = query,
+                placeholder = strings.cad.search(plural),
+                clearLabel = strings.cad.clearSearch,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp),
+                onQueryChange = { query = it },
+            )
+
+            if (tab == CadTab.TASKS) {
+                val counts = state.filterCounts(matchingTasks)
+                Row(
+                    Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    TaskFilter.entries.forEach { candidate ->
+                        FilterChip(
+                            label = filterLabel(strings, candidate),
+                            count = counts[candidate] ?: 0,
+                            selected = taskFilter == candidate,
+                        ) { taskFilter = candidate }
+                    }
                 }
             }
 
-            Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 20.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-                    Text(tabHeading(strings, tab), Modifier.weight(1f), style = handStyle(20.sp, Paper.subtle))
-                    Box(
-                        Modifier
-                            .clip(RoundedCornerShape(99.dp))
-                            .background(Paper.ink)
-                            .paperClick { showSheet = true }
-                            .padding(horizontal = 20.dp, vertical = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(strings.newItem, style = sansStyle(16.sp, Paper.onDark, FontWeight.Bold))
-                    }
+            Row(
+                Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    showingText(strings.cad.showing(items.size, total, plural), items.size),
+                    Modifier.weight(1f),
+                    style = sansStyle(13.5.sp, Paper.body, FontWeight.SemiBold),
+                )
+                Row(
+                    Modifier
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Paper.ink)
+                        .paperClick { showSheet = true }
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    PlusIcon(Paper.onDark)
+                    Text(newLabel(strings, tab), style = sansStyle(14.5.sp, Paper.onDark, FontWeight.Bold), maxLines = 1)
                 }
-                if (tab == CadTab.TASKS) {
-                    Row(
-                        Modifier.horizontalScroll(rememberScrollState()).padding(top = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        TaskFilter.entries.forEach { candidate ->
-                            SelectChip(
-                                label = filterLabel(strings, candidate),
-                                selected = taskFilter == candidate,
-                            ) { taskFilter = candidate }
+            }
+
+            LazyColumn(
+                Modifier.weight(1f).fillMaxWidth(),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(items, key = { it.id }) { item ->
+                    CadItemRow(tab, item) { editingId = item.id }
+                }
+                if (items.isEmpty()) {
+                    item(key = "empty") {
+                        EmptyState(
+                            strings = strings,
+                            message = when {
+                                query.isNotBlank() -> strings.cad.emptyQuery(query.trim())
+                                tab == CadTab.TASKS && taskFilter != TaskFilter.ALL -> strings.cad.emptyFilter
+                                else -> strings.cad.emptyList
+                            },
+                            showReset = query.isNotBlank() || taskFilter != TaskFilter.ALL,
+                        ) {
+                            query = ""
+                            taskFilter = TaskFilter.ALL
                         }
-                    }
-                }
-                Column(Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                    itemsFor(strings, tab, state, taskFilter).forEach { item ->
-                        CadItemRow(item) { editingId = item.id }
                     }
                 }
             }
@@ -209,23 +279,202 @@ private fun initialFor(tab: CadTab, state: RegisterUiState, id: String): EntityF
     CadTab.REWARDS -> state.rewards.find { it.id == id }?.let { EntityFormInitial(it.name, it.pointCost) }
 }
 
+/** The five entity types as a segmented control: an icon over each label, the chosen one inked. */
 @Composable
-private fun CadItemRow(item: CadItem, onClick: () -> Unit) {
+private fun CadTabSelector(
+    strings: Strings,
+    selected: CadTab,
+    modifier: Modifier = Modifier,
+    onSelect: (CadTab) -> Unit,
+) {
     Row(
-        Modifier.fillMaxWidth().paperCard(radius = 13).paperClick(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Paper.segmentTrack)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        CadTab.entries.forEach { candidate ->
+            val on = candidate == selected
+            val color = if (on) Paper.onDark else Paper.body
+            Column(
+                Modifier
+                    .weight(1f)
+                    .heightIn(min = 52.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (on) Paper.ink else Color.Transparent)
+                    .paperClick { onSelect(candidate) }
+                    .semantics { role = Role.Tab; this.selected = on }
+                    .padding(vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically),
+            ) {
+                when (candidate) {
+                    CadTab.TASKS -> TaskBoxIcon(color)
+                    CadTab.OBJECTIVES -> TargetIcon(color)
+                    CadTab.VALUES -> ValueStarIcon(color)
+                    CadTab.PENALTIES -> WarningIcon(color)
+                    CadTab.REWARDS -> GiftBoxIcon(color)
+                }
+                Text(
+                    tabLabel(strings, candidate),
+                    Modifier.padding(horizontal = 3.dp),
+                    style = sansStyle(10.5.sp, color, FontWeight.Bold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchField(
+    query: String,
+    placeholder: String,
+    clearLabel: String,
+    modifier: Modifier = Modifier,
+    onQueryChange: (String) -> Unit,
+) {
+    var focused by remember { mutableStateOf(false) }
+    val textStyle = sansStyle(15.sp, Paper.ink, FontWeight.SemiBold)
+    BasicTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
+        textStyle = textStyle,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        decorationBox = { inner ->
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .height(46.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(if (focused) Color.White else Paper.card)
+                    .border(1.5.dp, if (focused) Paper.ink else Paper.borderStrong, RoundedCornerShape(14.dp))
+                    .padding(start = 14.dp, end = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                SearchIcon(Paper.subtle)
+                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    if (query.isEmpty()) Text(placeholder, style = textStyle.copy(color = Paper.muted), maxLines = 1)
+                    inner()
+                }
+                if (query.isNotEmpty()) {
+                    Box(
+                        Modifier
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Paper.inset)
+                            .paperClick { onQueryChange("") }
+                            .semantics { contentDescription = clearLabel; role = Role.Button },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CloseIcon(Paper.body)
+                    }
+                }
+            }
+        },
+    )
+}
+
+/** Frequency filter chip with the number of tasks it would show. */
+@Composable
+private fun FilterChip(label: String, count: Int, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .height(36.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (selected) Color.White else Color.Transparent)
+            .border(1.5.dp, if (selected) Paper.ink else Paper.buttonBorder, RoundedCornerShape(10.dp))
+            .paperClick(onClick = onClick)
+            .semantics { this.selected = selected }
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(label, style = sansStyle(13.5.sp, if (selected) Paper.ink else Paper.body, FontWeight.Bold))
+        Text(count.toString(), style = sansStyle(12.sp, Paper.subtle, FontWeight.Bold))
+    }
+}
+
+@Composable
+private fun CadItemRow(tab: CadTab, item: CadItem, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().paperCard(radius = 14).paperClick(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        GlyphPlate(item.glyph, bg = item.glyphBg, color = item.glyphColor, hand = item.handGlyph, glyphSize = 16.sp)
-        Column(Modifier.weight(1f)) {
-            Text(item.name, style = sansStyle(15.sp, Paper.ink, FontWeight.SemiBold))
-            Text(item.meta, style = sansStyle(11.5.sp, Paper.muted))
+        val (plateBg, plateInk) = plateColors(tab)
+        Box(
+            Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(plateBg),
+            contentAlignment = Alignment.Center,
+        ) {
+            when (tab) {
+                CadTab.TASKS -> TickIcon(plateInk)
+                CadTab.OBJECTIVES -> TargetIcon(plateInk, size = 18.dp, width = 2f, dot = false)
+                CadTab.VALUES -> ValueStarIcon(plateInk, size = 18.dp, width = 2f)
+                CadTab.PENALTIES -> MinusIcon(plateInk)
+                CadTab.REWARDS -> GiftBoxIcon(plateInk, size = 18.dp, width = 2f, bow = false)
+            }
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(item.name, style = sansStyle(15.5.sp, Paper.ink, FontWeight.Bold, lineHeight = 19.sp))
+            if (item.meta.isNotEmpty()) {
+                Text(item.meta, style = sansStyle(12.5.sp, Paper.subtle, FontWeight.SemiBold, lineHeight = 16.sp))
+            }
         }
         if (item.pointsLabel.isNotEmpty()) {
-            Text(item.pointsLabel, style = sansStyle(14.sp, item.pointsColor, FontWeight.Bold))
+            Text(item.pointsLabel, style = sansStyle(15.sp, item.pointsColor, FontWeight.Bold), maxLines = 1)
+        }
+        Chevron(left = false, color = Paper.faded, size = 16.dp)
+    }
+}
+
+@Composable
+private fun EmptyState(strings: Strings, message: String, showReset: Boolean, onReset: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(strings.cad.emptyTitle, style = handStyle(28.sp, weight = FontWeight.Bold))
+        Text(message, style = sansStyle(14.sp, Paper.body, FontWeight.SemiBold), textAlign = TextAlign.Center)
+        if (showReset) {
+            Box(
+                Modifier
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .border(1.5.dp, Paper.ink, RoundedCornerShape(14.dp))
+                    .paperClick(onClick = onReset)
+                    .padding(horizontal = 18.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(strings.cad.resetAll, style = sansStyle(14.sp, Paper.ink, FontWeight.Bold))
+            }
         }
     }
+}
+
+/** "Showing 3 of 12 tasks" with the shown count emphasised. */
+private fun showingText(text: String, shown: Int): AnnotatedString = buildAnnotatedString {
+    append(text)
+    val start = text.indexOf(shown.toString())
+    if (start >= 0) {
+        addStyle(SpanStyle(color = Paper.ink, fontWeight = FontWeight.ExtraBold), start, start + shown.toString().length)
+    }
+}
+
+private fun plateColors(tab: CadTab): Pair<Color, Color> = when (tab) {
+    CadTab.TASKS -> Paper.greenSoft to Paper.green
+    CadTab.OBJECTIVES -> Paper.ochreSoft to Paper.ochre
+    CadTab.VALUES -> Paper.slateSoft to Paper.slate
+    CadTab.PENALTIES -> Paper.dangerSoft to Paper.danger
+    CadTab.REWARDS -> Paper.amberSoft to Paper.amber
 }
 
 private fun tabLabel(strings: Strings, tab: CadTab): String = when (tab) {
@@ -236,12 +485,12 @@ private fun tabLabel(strings: Strings, tab: CadTab): String = when (tab) {
     CadTab.REWARDS -> strings.cadRewards
 }
 
-private fun tabHeading(strings: Strings, tab: CadTab): String = when (tab) {
-    CadTab.TASKS -> strings.cadHeadingTasks
-    CadTab.OBJECTIVES -> strings.cadHeadingObjectives
-    CadTab.VALUES -> strings.cadHeadingValues
-    CadTab.PENALTIES -> strings.cadHeadingPenalties
-    CadTab.REWARDS -> strings.cadHeadingRewards
+private fun newLabel(strings: Strings, tab: CadTab): String = when (tab) {
+    CadTab.TASKS -> strings.cad.newTask
+    CadTab.OBJECTIVES -> strings.cad.newObjective
+    CadTab.VALUES -> strings.cad.newValue
+    CadTab.PENALTIES -> strings.cad.newPenalty
+    CadTab.REWARDS -> strings.cad.newReward
 }
 
 private fun filterLabel(strings: Strings, filter: TaskFilter) = when (filter) {
@@ -253,56 +502,65 @@ private fun filterLabel(strings: Strings, filter: TaskFilter) = when (filter) {
     TaskFilter.HABIT -> strings.recurHabit
 }
 
+private fun totalFor(tab: CadTab, state: RegisterUiState): Int = when (tab) {
+    CadTab.TASKS -> state.tasks.size
+    CadTab.OBJECTIVES -> state.objectives.size
+    CadTab.VALUES -> state.values.size
+    CadTab.PENALTIES -> state.penalties.size
+    CadTab.REWARDS -> state.rewards.size
+}
+
+/** The rows of [tab] matching [query]; for tasks, [tasks] is already searched and filtered. */
 private fun itemsFor(
     strings: Strings,
     tab: CadTab,
     state: RegisterUiState,
-    taskFilter: TaskFilter,
-): List<CadItem> = when (tab) {
-    CadTab.TASKS -> state.tasks.filter(taskFilter::matches).map { task ->
-        CadItem(
-            id = task.id,
-            glyph = "✓", glyphBg = Paper.greenSoft, glyphColor = Paper.green,
-            name = task.title,
-            meta = (
-                state.linkedNames(task) + strings.frequencyLabel(task) +
-                    listOfNotNull(task.reminder?.let { "⏰ $it" })
-                ).joinToString(" · "),
-            pointsLabel = "+${task.points}", pointsColor = Paper.subtle,
-        )
+    query: String,
+    tasks: List<Task>,
+): List<CadItem> {
+    val rows = when (tab) {
+        CadTab.TASKS -> return tasks.map { task ->
+            CadItem(
+                id = task.id,
+                name = task.title,
+                meta = (
+                    state.linkedNames(task) + strings.frequencyLabel(task) +
+                        listOfNotNull(task.reminder?.let { "⏰ $it" })
+                    ).joinToString(" · "),
+                pointsLabel = "+${task.points}", pointsColor = Paper.ink,
+            )
+        }
+        CadTab.OBJECTIVES -> state.objectives.map { objective ->
+            CadItem(
+                id = objective.id,
+                name = objective.title,
+                meta = strings.cad.linkedTasks(state.tasksLinkedToObjective(objective.id)),
+                pointsLabel = "+${objective.points}", pointsColor = Paper.ink,
+            )
+        }
+        CadTab.VALUES -> state.values.map { value ->
+            CadItem(
+                id = value.id,
+                name = value.name,
+                meta = strings.cad.linkedTasks(state.tasksLinkedToValue(value.id)),
+                pointsLabel = "", pointsColor = Paper.ink,
+            )
+        }
+        CadTab.PENALTIES -> state.penalties.map { penalty ->
+            CadItem(
+                id = penalty.id,
+                name = penalty.name, meta = strings.metaPenalty,
+                pointsLabel = "−${penalty.pointCost}", pointsColor = Paper.danger,
+            )
+        }
+        CadTab.REWARDS -> state.rewards.map { reward ->
+            CadItem(
+                id = reward.id,
+                name = reward.name, meta = strings.metaReward,
+                pointsLabel = "${reward.pointCost} ${strings.pointsSuffix}", pointsColor = Paper.ink,
+            )
+        }
     }
-    CadTab.OBJECTIVES -> state.objectives.mapIndexed { index, objective ->
-        CadItem(
-            id = objective.id,
-            glyph = (index + 1).toString(), glyphBg = Paper.claySoft, glyphColor = Paper.accent,
-            name = objective.title, meta = strings.metaObjective(index + 1),
-            pointsLabel = "+${objective.points}", pointsColor = Paper.subtle,
-            handGlyph = false,
-        )
-    }
-    CadTab.VALUES -> state.values.map { value ->
-        CadItem(
-            id = value.id,
-            glyph = value.name.take(1), glyphBg = Paper.inset, glyphColor = Paper.subtle,
-            name = value.name, meta = strings.metaValue,
-            pointsLabel = "", pointsColor = Paper.muted,
-        )
-    }
-    CadTab.PENALTIES -> state.penalties.map { penalty ->
-        CadItem(
-            id = penalty.id,
-            glyph = "−", glyphBg = Paper.dangerSoft, glyphColor = Paper.danger,
-            name = penalty.name, meta = strings.metaPenalty,
-            pointsLabel = "−${penalty.pointCost}", pointsColor = Paper.danger,
-            handGlyph = false,
-        )
-    }
-    CadTab.REWARDS -> state.rewards.map { reward ->
-        CadItem(
-            id = reward.id,
-            glyph = "★", glyphBg = Paper.inset, glyphColor = Paper.accent,
-            name = reward.name, meta = strings.metaReward,
-            pointsLabel = "${reward.pointCost} ${strings.pointsSuffix}", pointsColor = Paper.subtle,
-        )
-    }
+    return rows.filter { matchesSearch(query, listOf(it.name)) }
 }
+

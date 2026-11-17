@@ -51,7 +51,35 @@ data class RegisterUiState(
     fun linkedNames(task: Task): List<String> =
         task.linkedValueIds.mapNotNull { id -> values.find { it.id == id }?.name } +
             task.linkedObjectiveIds.mapNotNull { id -> objectives.find { it.id == id }?.title }
+
+    /** Tasks whose title or linked value/objective names contain [query] (case- and accent-insensitive). */
+    fun searchTasks(query: String): List<Task> =
+        tasks.filter { matchesSearch(query, listOf(it.title) + linkedNames(it)) }
+
+    /** How many listed tasks each [TaskFilter] chip would show among [matching]. */
+    fun filterCounts(matching: List<Task>): Map<TaskFilter, Int> =
+        TaskFilter.entries.associateWith { filter -> matching.count(filter::matches) }
+
+    fun tasksLinkedToValue(id: String): Int = tasks.count { id in it.linkedValueIds }
+
+    fun tasksLinkedToObjective(id: String): Int = tasks.count { id in it.linkedObjectiveIds }
 }
+
+/** True when [query] is blank or appears in any of [texts], ignoring case and accents. */
+fun matchesSearch(query: String, texts: List<String>): Boolean {
+    val needle = foldForSearch(query.trim())
+    return needle.isEmpty() || texts.any { foldForSearch(it).contains(needle) }
+}
+
+private val accentFolds: Map<Char, Char> = buildMap {
+    fun fold(target: Char, sources: String) = sources.forEach { put(it, target) }
+    fold('a', "áàâãäå"); fold('e', "éèêë"); fold('i', "íìîï"); fold('o', "óòôõö")
+    fold('u', "úùûü"); fold('c', "ç"); fold('n', "ñ"); fold('y', "ýÿ")
+}
+
+/** Lowercases and strips the Latin accents used in the app's three languages ("Diária" → "diaria"). */
+fun foldForSearch(text: String): String =
+    text.lowercase().map { accentFolds[it] ?: it }.joinToString("")
 
 class RegisterViewModel(
     private val taskRepository: TaskRepository,

@@ -12,14 +12,20 @@ import com.adamfoerster.mdhabits.domain.model.PersonalValue
 import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.Reward
 import com.adamfoerster.mdhabits.domain.model.Task
+import com.adamfoerster.mdhabits.core.i18n.Lang
+import com.adamfoerster.mdhabits.core.i18n.stringsFor
+import com.adamfoerster.mdhabits.ui.screens.register.RegisterUiState
 import com.adamfoerster.mdhabits.ui.screens.register.RegisterViewModel
 import com.adamfoerster.mdhabits.ui.screens.register.TaskFilter
+import com.adamfoerster.mdhabits.ui.screens.register.foldForSearch
+import com.adamfoerster.mdhabits.ui.screens.register.matchesSearch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class RegisterViewModelTest : MainDispatcherTest() {
 
@@ -201,5 +207,61 @@ class RegisterViewModelTest : MainDispatcherTest() {
         assertEquals(PersonalValue("v1", "Temperance", "Do less, better."), values.getValue("v1"))
         assertEquals(Penalty("p1", "Junk food day", 15, "Fast food counts."), penalties.getPenalty("p1"))
         assertEquals(Reward("r1", "Dinner out", 60, "Somewhere nice."), rewards.getReward("r1"))
+    }
+
+    private fun searchState() = RegisterUiState(
+        tasks = listOf(
+            Task("t1", "Ler a Bíblia", 10, Recurrence.DAILY, linkedValueIds = listOf("v1")),
+            Task("t2", "Exercício físico", 20, Recurrence.DAYS_OF_WEEK, linkedValueIds = listOf("v1")),
+            Task("t3", "Reunião caseira", 30, Recurrence.WEEKLY, linkedObjectiveIds = listOf("o1")),
+            Task("t4", "Pagar seguro", 100, Recurrence.ADHOC),
+        ),
+        theme = AnnualTheme("th", 2026, "Year", objectives = listOf(Objective("o1", "Integridade", 80))),
+        values = listOf(PersonalValue("v1", "Constância"), PersonalValue("v2", "Coragem")),
+    )
+
+    @Test
+    fun searchIgnoresCaseAndAccentsAndMatchesLinkedNames() {
+        val state = searchState()
+        assertEquals(listOf("t1"), state.searchTasks("biblia").map { it.id })
+        assertEquals(listOf("t2"), state.searchTasks("  EXERCICIO ").map { it.id })
+        // A value or objective name finds the tasks linked to it.
+        assertEquals(listOf("t1", "t2"), state.searchTasks("constancia").map { it.id })
+        assertEquals(listOf("t3"), state.searchTasks("integridade").map { it.id })
+        assertEquals(4, state.searchTasks("").size)
+        assertEquals(emptyList(), state.searchTasks("xyz"))
+    }
+
+    @Test
+    fun filterCountsFollowTheSearch() {
+        val state = searchState()
+        val all = state.filterCounts(state.tasks)
+        assertEquals(4, all[TaskFilter.ALL])
+        assertEquals(1, all[TaskFilter.DAILY])
+        assertEquals(1, all[TaskFilter.ADHOC])
+        assertEquals(0, all[TaskFilter.HABIT])
+
+        val searched = state.filterCounts(state.searchTasks("constancia"))
+        assertEquals(2, searched[TaskFilter.ALL])
+        assertEquals(1, searched[TaskFilter.DAYS_OF_WEEK])
+        assertEquals(0, searched[TaskFilter.WEEKLY])
+    }
+
+    @Test
+    fun linkedTaskCountsPerValueAndObjective() {
+        val state = searchState()
+        assertEquals(2, state.tasksLinkedToValue("v1"))
+        assertEquals(0, state.tasksLinkedToValue("v2"))
+        assertEquals(1, state.tasksLinkedToObjective("o1"))
+        assertEquals("1 tarefa ligada", stringsFor(Lang.PT).cad.linkedTasks(1))
+        assertEquals("2 tareas vinculadas", stringsFor(Lang.ES).cad.linkedTasks(2))
+        assertEquals("No linked tasks", stringsFor(Lang.EN).cad.linkedTasks(0))
+        assertEquals("Mostrando 3 de 12 tarefas", stringsFor(Lang.PT).cad.showing(3, 12, "tarefas"))
+    }
+
+    @Test
+    fun foldForSearchStripsAccents() {
+        assertEquals("diaria acao nino", foldForSearch("Diária AÇÃO Niño"))
+        assertTrue(matchesSearch("cao", listOf("Penalização")))
     }
 }

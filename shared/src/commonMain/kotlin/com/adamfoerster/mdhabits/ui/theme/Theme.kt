@@ -48,6 +48,13 @@ object Paper {
     val clay = Color(0xFF8B4B33)        // numbered objective circles (≈ oklch(0.46 .09 40))
     val claySoft = Color(0xFFF8E0D4)    // terracotta icon plates     (≈ oklch(0.93 .04 40))
     val dangerSoft = Color(0xFFF5E1D8)  // penalty icon plates        (≈ oklch(0.93 .03 40))
+    val ochre = Color(0xFF76561A)       // objective icon plates (glyph)
+    val ochreSoft = Color(0xFFECE1C4)   // objective icon plates
+    val slate = Color(0xFF3B5870)       // value icon plates (glyph)
+    val slateSoft = Color(0xFFDFE5EB)   // value icon plates
+    val amber = Color(0xFF87570F)       // reward icon plates (glyph)
+    val amberSoft = Color(0xFFF1E3CB)   // reward icon plates
+    val segmentTrack = Color(0xFFE8DFCD) // segmented tab selector track
 
     // Lines
     val border = Color(0xFFEBE0C9)      // card borders

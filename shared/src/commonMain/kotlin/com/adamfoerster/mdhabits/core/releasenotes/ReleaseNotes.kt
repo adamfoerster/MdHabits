@@ -44,6 +44,21 @@ object ReleaseNotes {
 
     val all: List<ReleaseNote> = listOf(
         ReleaseNote(
+            version = "0.26.0",
+            features = listOf(
+                LocalizedText(
+                    "Redesigned management screen: search your tasks, objectives, values, penalties and rewards, and see how many tasks each filter holds.",
+                    "Tela de cadastros redesenhada: busque tarefas, objetivos, valores, penalidades e recompensas, e veja quantas tarefas cada filtro tem.",
+                    "Pantalla de gestión rediseñada: busca tareas, objetivos, valores, penalizaciones y recompensas, y mira cuántas tareas tiene cada filtro.",
+                ),
+                LocalizedText(
+                    "Objectives and values now show how many tasks are linked to them.",
+                    "Objetivos e valores agora mostram quantas tarefas estão ligadas a eles.",
+                    "Los objetivos y valores ahora muestran cuántas tareas tienen vinculadas.",
+                ),
+            ),
+        ),
+        ReleaseNote(
             version = "0.25.0",
             features = listOf(
                 LocalizedText(

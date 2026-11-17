@@ -112,17 +112,10 @@ data class Strings(
     val cadValues: String,
     val cadPenalties: String,
     val cadRewards: String,
-    val cadHeadingTasks: String,
-    val cadHeadingObjectives: String,
-    val cadHeadingValues: String,
-    val cadHeadingPenalties: String,
-    val cadHeadingRewards: String,
-    val newItem: String,
+    val cad: CadStrings,
     val filterAll: String,
     val deleteTask: String,
     val deleteTaskConfirm: String,
-    val metaObjectiveTemplate: String,
-    val metaValue: String,
     val metaPenalty: String,
     val metaReward: String,
     // Entity sheets
@@ -299,8 +292,6 @@ data class Strings(
 
     fun redeemed(name: String): String = redeemedToast.replace("%1", name)
 
-    fun metaObjective(n: Int): String = metaObjectiveTemplate.replace("%1", n.toString())
-
     fun reminderTime(time: String): String = reminderTimeTemplate.replace("%1", time)
 
     fun themeKicker(year: Int): String = themeKickerTemplate.replace("%1", year.toString())
@@ -369,14 +360,20 @@ private val En = Strings(
     redeemedToast = "Redeemed: %1 🎉", insufficientBalance = "Not enough points",
     cadTitle = "Everything you track",
     cadTasks = "Tasks", cadObjectives = "Objectives", cadValues = "Values",
+    cad = CadStrings(
+        newTask = "New task", newObjective = "New objective", newValue = "New value",
+        newPenalty = "New penalty", newReward = "New reward",
+        searchTemplate = "Search %1", clearSearch = "Clear search",
+        showingTemplate = "Showing %1 of %2 %3",
+        linkedOne = "1 linked task", linkedManyTemplate = "%1 linked tasks", linkedNone = "No linked tasks",
+        emptyTitle = "Nothing here", emptyQueryTemplate = "Nothing matches “%1”.",
+        emptyFilter = "No tasks with this filter.", emptyList = "You haven't added any yet.",
+        resetAll = "Clear search and filters",
+    ),
     cadPenalties = "Penalties", cadRewards = "Rewards",
-    cadHeadingTasks = "your tasks", cadHeadingObjectives = "your objectives",
-    cadHeadingValues = "your values", cadHeadingPenalties = "your penalties",
-    cadHeadingRewards = "your rewards",
-    newItem = "+ new", filterAll = "All",
+    filterAll = "All",
     deleteTask = "Delete task",
     deleteTaskConfirm = "Delete this task for good? Points already earned stay in your history.",
-    metaObjectiveTemplate = "Objective %1 of the year", metaValue = "Personal value",
     metaPenalty = "Penalty", metaReward = "Reward",
     frequency = "Frequency", recurWeekly = "Weekly", recurDaily = "Daily",
     recurDaysOfWeek = "Days of week", recurAdhoc = "Ad-hoc", recurHabit = "Habit",
@@ -525,14 +522,20 @@ private val Pt = Strings(
     redeemedToast = "Resgatado: %1 🎉", insufficientBalance = "Pontos insuficientes",
     cadTitle = "Tudo que você acompanha",
     cadTasks = "Tarefas", cadObjectives = "Objetivos", cadValues = "Valores",
+    cad = CadStrings(
+        newTask = "Nova tarefa", newObjective = "Novo objetivo", newValue = "Novo valor",
+        newPenalty = "Nova penalidade", newReward = "Nova recompensa",
+        searchTemplate = "Buscar %1", clearSearch = "Limpar busca",
+        showingTemplate = "Mostrando %1 de %2 %3",
+        linkedOne = "1 tarefa ligada", linkedManyTemplate = "%1 tarefas ligadas", linkedNone = "Nenhuma tarefa ligada",
+        emptyTitle = "Nada por aqui", emptyQueryTemplate = "Nenhum item corresponde a “%1”.",
+        emptyFilter = "Nenhuma tarefa com esse filtro.", emptyList = "Você ainda não cadastrou nenhum.",
+        resetAll = "Limpar busca e filtros",
+    ),
     cadPenalties = "Penalidades", cadRewards = "Recompensas",
-    cadHeadingTasks = "suas tarefas", cadHeadingObjectives = "seus objetivos",
-    cadHeadingValues = "seus valores", cadHeadingPenalties = "suas penalidades",
-    cadHeadingRewards = "suas recompensas",
-    newItem = "+ novo", filterAll = "Todas",
+    filterAll = "Todas",
     deleteTask = "Excluir tarefa",
     deleteTaskConfirm = "Excluir esta tarefa de vez? Os pontos já ganhos continuam no seu histórico.",
-    metaObjectiveTemplate = "Objetivo %1 do ano", metaValue = "Valor pessoal",
     metaPenalty = "Penalidade", metaReward = "Recompensa",
     frequency = "Frequência", recurWeekly = "Semanal", recurDaily = "Diária",
     recurDaysOfWeek = "Dias da semana", recurAdhoc = "Avulsa", recurHabit = "Hábito",
@@ -681,14 +684,20 @@ private val Es = Strings(
     redeemedToast = "Canjeado: %1 🎉", insufficientBalance = "Puntos insuficientes",
     cadTitle = "Todo lo que sigues",
     cadTasks = "Tareas", cadObjectives = "Objetivos", cadValues = "Valores",
+    cad = CadStrings(
+        newTask = "Nueva tarea", newObjective = "Nuevo objetivo", newValue = "Nuevo valor",
+        newPenalty = "Nueva penalización", newReward = "Nueva recompensa",
+        searchTemplate = "Buscar %1", clearSearch = "Borrar búsqueda",
+        showingTemplate = "Mostrando %1 de %2 %3",
+        linkedOne = "1 tarea vinculada", linkedManyTemplate = "%1 tareas vinculadas", linkedNone = "Ninguna tarea vinculada",
+        emptyTitle = "Nada por aquí", emptyQueryTemplate = "Nada coincide con “%1”.",
+        emptyFilter = "Ninguna tarea con este filtro.", emptyList = "Aún no has añadido ninguno.",
+        resetAll = "Borrar búsqueda y filtros",
+    ),
     cadPenalties = "Penalizaciones", cadRewards = "Recompensas",
-    cadHeadingTasks = "tus tareas", cadHeadingObjectives = "tus objetivos",
-    cadHeadingValues = "tus valores", cadHeadingPenalties = "tus penalizaciones",
-    cadHeadingRewards = "tus recompensas",
-    newItem = "+ nuevo", filterAll = "Todas",
+    filterAll = "Todas",
     deleteTask = "Eliminar tarea",
     deleteTaskConfirm = "¿Eliminar esta tarea definitivamente? Los puntos ya ganados se quedan en tu historial.",
-    metaObjectiveTemplate = "Objetivo %1 del año", metaValue = "Valor personal",
     metaPenalty = "Penalización", metaReward = "Recompensa",
     frequency = "Frecuencia", recurWeekly = "Semanal", recurDaily = "Diaria",
     recurDaysOfWeek = "Días de la semana", recurAdhoc = "Suelta", recurHabit = "Hábito",
@@ -795,3 +804,37 @@ fun stringsFor(lang: Lang): Strings = when (lang) {
 
 /** Current strings for the composition. Provided at the app root based on the selected language. */
 val LocalStrings = staticCompositionLocalOf { En }
+
+/** The management (Cadastros) screen's strings, grouped to keep [Strings] under the JVM's 255-parameter limit. */
+data class CadStrings(
+    val newTask: String,
+    val newObjective: String,
+    val newValue: String,
+    val newPenalty: String,
+    val newReward: String,
+    val searchTemplate: String,
+    val clearSearch: String,
+    val showingTemplate: String,
+    val linkedOne: String,
+    val linkedManyTemplate: String,
+    val linkedNone: String,
+    val emptyTitle: String,
+    val emptyQueryTemplate: String,
+    val emptyFilter: String,
+    val emptyList: String,
+    val resetAll: String,
+) {
+    /** "Search tasks" — [plural] is the lowercase tab name. */
+    fun search(plural: String): String = searchTemplate.replace("%1", plural)
+
+    fun showing(shown: Int, total: Int, plural: String): String = showingTemplate
+        .replace("%1", shown.toString()).replace("%2", total.toString()).replace("%3", plural)
+
+    fun linkedTasks(count: Int): String = when (count) {
+        0 -> linkedNone
+        1 -> linkedOne
+        else -> linkedManyTemplate.replace("%1", count.toString())
+    }
+
+    fun emptyQuery(query: String): String = emptyQueryTemplate.replace("%1", query)
+}

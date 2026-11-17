@@ -5,6 +5,20 @@ All notable changes to MdHabits. Versions follow [Semantic Versioning](https://s
 The short, user-facing version of these notes is shown in the app (the "What's new" popup and
 *Settings → About → Release notes*) and lives in `ReleaseNotes.kt`.
 
+### 0.26.0 — Redesigned management screen
+
+- *Cadastros* was redesigned: the five item types are a segmented selector with an icon each, and a
+  search field filters the list as you type, ignoring case and accents (tasks also match the names
+  of their linked values and objectives).
+- The task frequency filters show how many tasks each would list, and a "Showing X of Y" line sits
+  next to a "New task / New objective / …" button named after the selected type.
+- Rows have a colored icon plate per type and a chevron; objectives and values now show how many
+  tasks are linked to them. An empty result offers to clear the search and filters.
+- Implementation: the screen's strings moved into the nested `CadStrings` (`Strings.cad`), which
+  replaced the unused `cadHeading*`, `newItem`, `metaObjectiveTemplate` and `metaValue` fields to stay
+  under the 255-parameter limit. Search/count helpers live on `RegisterUiState` (`searchTasks`,
+  `filterCounts`, `tasksLinkedTo*`) with `matchesSearch`/`foldForSearch`.
+
 ### 0.25.0 — Faster, non-blocking vault access
 
 - The app keeps an in-memory copy of every note, saved app-private between launches
