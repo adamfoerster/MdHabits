@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.adamfoerster.mdhabits.core.i18n.LocalStrings
+import com.adamfoerster.mdhabits.core.releasenotes.ReleaseNotes
+import com.adamfoerster.mdhabits.ui.components.ReleaseNotesSheet
 import com.adamfoerster.mdhabits.ui.components.CalendarIcon
 import com.adamfoerster.mdhabits.ui.components.Chevron
 import com.adamfoerster.mdhabits.ui.components.DownloadIcon
@@ -64,6 +66,7 @@ fun SettingsScreen(
     val mdPrayerLinkedTaskTitle by viewModel.mdPrayerLinkedTaskTitle.collectAsStateWithLifecycle()
     val healthEnabled by viewModel.healthEnabled.collectAsStateWithLifecycle()
     var showTaskPicker by remember { mutableStateOf(false) }
+    var showReleaseNotes by remember { mutableStateOf(false) }
     val toast = rememberToastState()
 
     Box(Modifier.fillMaxSize().background(Paper.bg)) {
@@ -244,6 +247,14 @@ fun SettingsScreen(
                             divider = true,
                         )
                         SettingRow(
+                            icon = { StarIcon() },
+                            title = ReleaseNotes.settingsButton.get(lang),
+                            subtitle = null,
+                            trailing = { Chevron(left = false, color = Paper.faded, size = 18.dp) },
+                            divider = true,
+                            onClick = { showReleaseNotes = true },
+                        )
+                        SettingRow(
                             icon = { DownloadIcon() },
                             title = strings.cfgPointsReport,
                             subtitle = strings.cfgPointsReportSub,
@@ -262,6 +273,15 @@ fun SettingsScreen(
         }
 
         PaperToast(toast)
+    }
+
+    if (showReleaseNotes) {
+        ReleaseNotesSheet(
+            version = viewModel.version,
+            note = ReleaseNotes.forVersion(viewModel.version),
+            lang = lang,
+            onDismiss = { showReleaseNotes = false },
+        )
     }
 
     if (showTaskPicker) {

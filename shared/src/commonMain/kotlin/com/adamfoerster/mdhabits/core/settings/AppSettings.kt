@@ -30,4 +30,7 @@ interface AppSettings {
 
     /** Whether the optional health integration (Health Connect on Android) is turned on. */
     var healthConnectEnabled: Boolean
+
+    /** App version whose release notes popup the user already dismissed, or null if never. */
+    var lastSeenReleaseNotesVersion: String?
 }

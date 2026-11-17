@@ -4,7 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -15,9 +17,12 @@ import androidx.navigation.compose.rememberNavController
 import com.adamfoerster.mdhabits.core.i18n.LocalStrings
 import com.adamfoerster.mdhabits.core.i18n.LocaleController
 import com.adamfoerster.mdhabits.core.i18n.stringsFor
+import com.adamfoerster.mdhabits.core.platform.AppInfo
+import com.adamfoerster.mdhabits.core.releasenotes.ReleaseNotesTracker
 import com.adamfoerster.mdhabits.core.settings.AppSettings
 import com.adamfoerster.mdhabits.data.markdown.VaultWatcher
 import com.adamfoerster.mdhabits.domain.usecase.ReminderSyncer
+import com.adamfoerster.mdhabits.ui.components.ReleaseNotesSheet
 import com.adamfoerster.mdhabits.ui.navigation.MainGraph
 import com.adamfoerster.mdhabits.ui.navigation.MainScaffold
 import com.adamfoerster.mdhabits.ui.navigation.OnboardingGraph
@@ -45,8 +50,27 @@ fun App() = KoinContext {
     val reminderSyncer = koinInject<ReminderSyncer>()
     LaunchedEffect(reminderSyncer) { reminderSyncer.run() }
 
+    // "What's new" opens once per installed version (never right after a fresh install).
+    val releaseNotesTracker = koinInject<ReleaseNotesTracker>()
+    val appInfo = koinInject<AppInfo>()
+    var releaseNote by remember {
+        val pending = releaseNotesTracker.pending()
+        mutableStateOf(if (startOnboarded) pending else null)
+    }
+
     CompositionLocalProvider(LocalStrings provides stringsFor(lang)) {
         MdHabitsTheme {
+            releaseNote?.let { note ->
+                ReleaseNotesSheet(
+                    version = appInfo.version,
+                    note = note,
+                    lang = lang,
+                    onDismiss = {
+                        releaseNotesTracker.markSeen()
+                        releaseNote = null
+                    },
+                )
+            }
             val navController = rememberNavController()
             NavHost(
                 navController = navController,

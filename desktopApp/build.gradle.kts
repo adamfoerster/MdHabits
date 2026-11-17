@@ -6,8 +6,8 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
-// Keep in sync with Android versionName and iOS MARKETING_VERSION (see AGENTS.md).
-val appVersion = "0.23.3"
+// Keep in sync with Android versionName and iOS MARKETING_VERSION (see CLAUDE.md).
+val appVersion = "0.24.0"
 
 dependencies {
     implementation(projects.shared)

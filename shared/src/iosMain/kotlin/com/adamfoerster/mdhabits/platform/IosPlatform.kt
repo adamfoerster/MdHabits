@@ -66,7 +66,12 @@ class IosAppSettings : AppSettings {
         get() = defaults.boolForKey(KEY_HEALTH_ENABLED)
         set(value) = defaults.setBool(value, KEY_HEALTH_ENABLED)
 
+    override var lastSeenReleaseNotesVersion: String?
+        get() = defaults.stringForKey(KEY_RELEASE_NOTES_SEEN)
+        set(value) = defaults.setObject(value, KEY_RELEASE_NOTES_SEEN)
+
     private companion object {
+        const val KEY_RELEASE_NOTES_SEEN = "release_notes_seen_version"
         const val KEY_ONBOARDED = "onboarding_complete"
         const val KEY_VAULT_NAME = "vault_display_name"
         const val KEY_VAULT_REF = "vault_ref"

@@ -1,0 +1,125 @@
+package com.adamfoerster.mdhabits.core.releasenotes
+
+import com.adamfoerster.mdhabits.core.i18n.Lang
+import com.adamfoerster.mdhabits.core.platform.AppInfo
+import com.adamfoerster.mdhabits.core.settings.AppSettings
+
+/** A text in the three supported languages. */
+data class LocalizedText(val en: String, val pt: String, val es: String) {
+    fun get(lang: Lang): String = when (lang) {
+        Lang.EN -> en
+        Lang.PT -> pt
+        Lang.ES -> es
+    }
+}
+
+/**
+ * The short, user-facing notes of one release: new features and bug fixes only, no implementation
+ * details. The long version lives in CHANGELOG.md.
+ */
+data class ReleaseNote(
+    val version: String,
+    val features: List<LocalizedText> = emptyList(),
+    val fixes: List<LocalizedText> = emptyList(),
+)
+
+/**
+ * Release notes shown in the "What's new" popup. Newest first. Every released version that changes
+ * something the user can notice must have an entry here (see CLAUDE.md).
+ *
+ * The popup labels live here, not in `Strings`, which is at the JVM's 255-parameter limit.
+ */
+object ReleaseNotes {
+    val title = LocalizedText("What's new", "Novidades", "Novedades")
+    val subtitle = LocalizedText("Version", "Versão", "Versión")
+    val featuresLabel = LocalizedText("New", "Novo", "Nuevo")
+    val fixesLabel = LocalizedText("Fixes", "Correções", "Correcciones")
+    val gotIt = LocalizedText("Got it", "Entendi", "Entendido")
+    val settingsButton = LocalizedText("Release notes", "Notas da versão", "Notas de la versión")
+    val empty = LocalizedText(
+        "Nothing to show for this version.",
+        "Nada a mostrar para esta versão.",
+        "Nada que mostrar para esta versión.",
+    )
+
+    val all: List<ReleaseNote> = listOf(
+        ReleaseNote(
+            version = "0.24.0",
+            features = listOf(
+                LocalizedText(
+                    "A \"What's new\" message now appears once after each update. You can read it again any time from Settings, next to the version.",
+                    "Uma mensagem de \"Novidades\" aparece uma vez após cada atualização. Você pode relê-la quando quiser em Ajustes, ao lado da versão.",
+                    "Un mensaje de \"Novedades\" aparece una vez tras cada actualización. Puedes volver a leerlo cuando quieras en Ajustes, junto a la versión.",
+                ),
+            ),
+        ),
+        ReleaseNote(
+            version = "0.23.2",
+            fixes = listOf(
+                LocalizedText(
+                    "A habit that is checked off now shows its points with just \"+\".",
+                    "Um hábito marcado como feito agora mostra seus pontos só com \"+\".",
+                    "Un hábito marcado como hecho ahora muestra sus puntos solo con \"+\".",
+                ),
+            ),
+        ),
+        ReleaseNote(
+            version = "0.23.1",
+            features = listOf(
+                LocalizedText(
+                    "Habit days you missed stand out in terracotta with a \"−\" showing the points they cost.",
+                    "Dias de hábito perdidos aparecem em terracota com um \"−\" mostrando os pontos que custaram.",
+                    "Los días de hábito perdidos se ven en terracota con un \"−\" que muestra los puntos que costaron.",
+                ),
+            ),
+        ),
+        ReleaseNote(
+            version = "0.23.0",
+            features = listOf(
+                LocalizedText(
+                    "Home now lists the rewards you redeemed today.",
+                    "A tela inicial agora lista as recompensas resgatadas hoje.",
+                    "Inicio ahora lista las recompensas canjeadas hoy.",
+                ),
+            ),
+        ),
+    )
+
+    /** The note for [version], or null when that release has none. */
+    fun forVersion(version: String): ReleaseNote? = all.firstOrNull { it.version == version }
+}
+
+/**
+ * Decides when the "What's new" popup opens: once per installed version, never on a fresh install
+ * (a new user has nothing to compare with), and only for versions that have a note.
+ */
+class ReleaseNotesTracker(
+    private val settings: AppSettings,
+    private val appInfo: AppInfo,
+) {
+    /** The note to pop up now, or null. Call [markSeen] when the user dismisses it. */
+    fun pending(): ReleaseNote? {
+        val current = appInfo.version
+        if (current.isBlank()) return null
+        val last = settings.lastSeenReleaseNotesVersion
+        if (last == current) return null
+        if (last == null && !settings.onboardingComplete) {
+            settings.lastSeenReleaseNotesVersion = current
+            return null
+        }
+        val note = ReleaseNotes.forVersion(current)
+        if (note == null) {
+            settings.lastSeenReleaseNotesVersion = current
+            return null
+        }
+        return note
+    }
+
+    fun markSeen() {
+        val current = appInfo.version
+        if (current.isNotBlank()) settings.lastSeenReleaseNotesVersion = current
+    }
+
+    /** The note for the installed version, for the Settings button; null when there is none. */
+    fun current(): ReleaseNote? = ReleaseNotes.forVersion(appInfo.version)
+}

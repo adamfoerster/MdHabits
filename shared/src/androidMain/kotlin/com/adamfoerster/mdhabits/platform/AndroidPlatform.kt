@@ -107,7 +107,12 @@ class AndroidAppSettings(context: Context) : AppSettings {
         get() = prefs.getBoolean(KEY_HEALTH_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_HEALTH_ENABLED, value).apply()
 
+    override var lastSeenReleaseNotesVersion: String?
+        get() = prefs.getString(KEY_RELEASE_NOTES_SEEN, null)
+        set(value) = prefs.edit().putString(KEY_RELEASE_NOTES_SEEN, value).apply()
+
     private companion object {
+        const val KEY_RELEASE_NOTES_SEEN = "release_notes_seen_version"
         const val KEY_ONBOARDED = "onboarding_complete"
         const val KEY_VAULT_NAME = "vault_display_name"
         const val KEY_VAULT_REF = "vault_ref"

@@ -2,6 +2,7 @@ package com.adamfoerster.mdhabits.di
 
 import com.adamfoerster.mdhabits.core.datetime.WeekCalculator
 import com.adamfoerster.mdhabits.core.i18n.LocaleController
+import com.adamfoerster.mdhabits.core.releasenotes.ReleaseNotesTracker
 import com.adamfoerster.mdhabits.core.settings.AppSettings
 import com.adamfoerster.mdhabits.data.markdown.MarkdownHealthLogRepository
 import com.adamfoerster.mdhabits.data.markdown.MarkdownMdPrayerRepository
@@ -89,6 +90,7 @@ val dataModule = module {
     single { VaultMigrator(get(), get()) }
     single { VaultInspector(get()) }
     single { LocaleController(get()) }
+    single { ReleaseNotesTracker(get(), get()) }
 }
 
 val domainModule = module {

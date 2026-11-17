@@ -70,6 +70,10 @@ class DesktopAppSettings(
         get() = prefs.getBoolean(KEY_HEALTH_ENABLED, false)
         set(value) = prefs.putBoolean(KEY_HEALTH_ENABLED, value)
 
+    override var lastSeenReleaseNotesVersion: String?
+        get() = prefs.get(KEY_RELEASE_NOTES_SEEN, null)
+        set(value) = prefs.putOrRemove(KEY_RELEASE_NOTES_SEEN, value)
+
     private fun Preferences.putOrRemove(key: String, value: String?) {
         if (value == null) remove(key) else put(key, value)
     }
@@ -84,6 +88,7 @@ class DesktopAppSettings(
         const val KEY_MDPRAYER_REF = "mdprayer_folder_ref"
         const val KEY_MDPRAYER_TASK = "mdprayer_linked_task_id"
         const val KEY_HEALTH_ENABLED = "health_connect_enabled"
+        const val KEY_RELEASE_NOTES_SEEN = "release_notes_seen_version"
     }
 }
 

@@ -31,6 +31,7 @@ class FakeAppSettings : AppSettings {
     override var mdPrayerFolderRef: String? = null
     override var mdPrayerLinkedTaskId: String? = null
     override var healthConnectEnabled: Boolean = false
+    override var lastSeenReleaseNotesVersion: String? = null
 }
 
 class FakeVaultPicker : VaultPicker {
