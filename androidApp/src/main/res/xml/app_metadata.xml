@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What MdHabits' AppFunctions are for, read by assistants such as Gemini (see BaseTaskAppFunctionService). -->
+<AppFunctionAppMetadata xmlns:appfn="http://schemas.android.com/apk/androidx.appfunctions"
+    appfn:instructions="MdHabits is a habit journal: the user's tasks and habits earn points when done, spent later on rewards.
+Operational patterns:
+  - Call 'createTask' when the user asks to add a task, habit or to-do to MdHabits. Pass only what the user said; omitted fields get the app's defaults.
+Constraints:
+  - The title can't be empty. Days of the week are English names (MONDAY to SUNDAY)."
+    appfn:displayDescription="@string/app_function_display_description" />

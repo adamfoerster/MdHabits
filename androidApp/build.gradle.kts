@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.ksp)
 }
 
 kotlin {
@@ -17,6 +18,9 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.health.connect)
     implementation(libs.androidx.glance.appwidget)
+    // Lets Gemini add tasks by voice (Android 16+): see appfunctions/TaskAppFunctionService.kt.
+    implementation(libs.androidx.appfunctions)
+    ksp(libs.androidx.appfunctions.compiler)
 
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)

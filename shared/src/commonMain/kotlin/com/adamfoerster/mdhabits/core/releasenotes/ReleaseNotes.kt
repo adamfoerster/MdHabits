@@ -51,6 +51,11 @@ object ReleaseNotes {
                     "Widget para a tela inicial do Android: veja as tarefas do dia e da semana e marque-as sem abrir o app.",
                     "Widget para la pantalla de inicio de Android: mira las tareas del día y de la semana y márcalas sin abrir la app.",
                 ),
+                LocalizedText(
+                    "On Android 16 and newer, assistants like Gemini can add tasks to MdHabits for you.",
+                    "No Android 16 ou mais recente, assistentes como o Gemini podem adicionar tarefas ao MdHabits para você.",
+                    "En Android 16 o posterior, asistentes como Gemini pueden añadir tareas a MdHabits por ti.",
+                ),
             ),
         ),
         ReleaseNote(

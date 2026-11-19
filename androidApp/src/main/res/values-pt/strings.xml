@@ -1,3 +1,4 @@
 <resources>
     <string name="widget_tasks_description">Marque as tarefas do dia e da semana</string>
+    <string name="app_function_display_description">Adicione tarefas e hábitos ao MdHabits</string>
 </resources>

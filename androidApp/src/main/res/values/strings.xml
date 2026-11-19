@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">MdHabits</string>
     <string name="widget_tasks_description">Check off today\'s and this week\'s tasks</string>
+    <string name="app_function_display_description">Add tasks and habits to MdHabits</string>
 </resources>

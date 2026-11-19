@@ -217,6 +217,11 @@ Keep the CHANGELOG.md heading, the `ReleaseNotes.kt` entry, `versionName`, `MARK
   `listModified` reports it as `VaultFileSystem.PENDING_STAMP` (what `FolderStamps.written` records).
   Call `flush()` before anything that changes the root or needs the files on disk. In tests,
   `backgroundScope` work isn't run by `advanceUntilIdle`, so advance time and call `runCurrent()`.
+- Android components that run without `MainActivity` — the home-screen widget (`androidApp/.../widget`)
+  and the Gemini AppFunction (`androidApp/.../appfunctions`, Android 16+) — reach the shared code through
+  `platform/AndroidKoin.ready` (sets the vault context, starts Koin, refreshes from the vault) and must
+  `flush()` the `VaultFileSystem` after writing, since their process may die right after. The AppFunction's
+  KDoc *is* its description for the assistant (`isDescribedByKDoc = true`); keep it accurate.
 - `VaultFileSystem` implementations resolve the storage root from `AppSettings.vaultRef`
   on **every call**. Any flow that changes the vault (onboarding finish, Settings folder
   pick) must go through `storage/VaultMigrator` *before* writing notes — persisting the

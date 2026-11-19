@@ -29,6 +29,7 @@ import com.adamfoerster.mdhabits.domain.repository.WeeklyReviewRepository
 import com.adamfoerster.mdhabits.domain.usecase.AchieveObjectiveUseCase
 import com.adamfoerster.mdhabits.domain.usecase.ApplyPenaltyUseCase
 import com.adamfoerster.mdhabits.domain.usecase.CompleteTaskUseCase
+import com.adamfoerster.mdhabits.domain.usecase.CreateTaskUseCase
 import com.adamfoerster.mdhabits.domain.usecase.PenalizeMissedHabitsUseCase
 import com.adamfoerster.mdhabits.domain.usecase.RedeemRewardUseCase
 import com.adamfoerster.mdhabits.domain.usecase.ReminderSyncer
@@ -126,6 +127,7 @@ val domainModule = module {
     factory { SyncHealthUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { ReminderSyncer(get(), get(), get(), get()) }
     factory { WidgetTasksUseCase(get(), get(), get()) }
+    factory { CreateTaskUseCase(get(), get()) }
 }
 
 val viewModelModule = module {

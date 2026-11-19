@@ -5,7 +5,16 @@ All notable changes to MdHabits. Versions follow [Semantic Versioning](https://s
 The short, user-facing version of these notes is shown in the app (the "What's new" popup and
 *Settings → About → Release notes*) and lives in `ReleaseNotes.kt`.
 
-### 0.27.0 — Android home-screen widget
+### 0.27.0 — Android home-screen widget and adding tasks through Gemini
+
+- On Android 16+, assistants such as Gemini can add a task to MdHabits ("add *buy bread* to
+  MdHabits"): an AppFunction `createTask` takes a title plus, optionally, points (default 5), a
+  frequency (default ad-hoc, or days-of-week when only days are given) and weekdays. It refuses a blank
+  or over-long title, out-of-range points, unknown frequencies/days, and a second pending task with the
+  same title, so a retried voice request doesn't add it twice. The note is written to the vault at once
+  and the widget redraws. Gemini only calls third-party AppFunctions for apps registered in Google's
+  Connected Apps preview, so until then it can be exercised with
+  `adb shell cmd app_function execute-app-function`.
 
 - New Android home-screen widget listing the tasks due today (daily, habits, and days-of-week tasks
   scheduled for today) and this week's weekly tasks; ad-hoc tasks stay in the app. Tapping a row
@@ -20,6 +29,11 @@ The short, user-facing version of these notes is shown in the app (the "What's n
   `androidx.glance:glance-appwidget` dependency) reaches the shared code through
   `platform/AndroidWidgetData`, which starts Koin when the widget runs without the activity and
   flushes the pending vault write after each toggle.
+- Implementation (AppFunction): `CreateTaskUseCase` (shared, tested in `CreateTaskTest`) validates and saves;
+  `appfunctions/BaseTaskAppFunctionService` declares it with `androidx.appfunctions` 1.0.0-rc01, whose KSP
+  compiler generates `TaskAppFunctionService` and its schema XML (manifest service + `xml/app_metadata.xml`).
+  Shared entry for components running without the activity moved to `platform/AndroidKoin`.
+  Build: AGP 9.1.1 (from 9.0.1), Gradle 9.3.1 (from 9.1.0), compileSdk 37, and the KSP plugin 2.3.14.
 
 ### 0.26.0 — Redesigned management screen
 
