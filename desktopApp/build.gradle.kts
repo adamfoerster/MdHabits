@@ -30,6 +30,8 @@ compose.desktop {
                 upgradeUuid = "dacf405b-1517-4eb7-a42d-465aa62b1c7f"
                 // Icon of the installer, the installed .exe and its shortcuts.
                 iconFile.set(project.file("icons/mdhabits.ico"))
+                // Installs under %LOCALAPPDATA% for the current user only: no administrator rights needed.
+                perUserInstall = true
                 shortcut = true
                 menu = true
             }
