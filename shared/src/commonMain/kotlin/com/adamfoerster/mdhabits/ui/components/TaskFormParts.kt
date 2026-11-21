@@ -24,6 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adamfoerster.mdhabits.domain.model.ReminderTime
 import com.adamfoerster.mdhabits.ui.theme.Paper
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 
 /* Building blocks of the task form: grouped cards, radio rows, a segmented control, day circles,
  * a time stepper and a collapsible section — instead of a wall of pills. */
@@ -132,6 +135,34 @@ fun TimeStepper(time: ReminderTime, onChange: (ReminderTime) -> Unit, minuteStep
             value = time.minute.toString().padStart(2, '0'),
             onUp = { onChange(time.copy(minute = (time.minute + minuteStep) % 60)) },
             onDown = { onChange(time.copy(minute = (time.minute - minuteStep + 60) % 60)) },
+        )
+    }
+}
+
+/** Day, month and year steppers for picking a [LocalDate] without a dialog; days roll over the month. */
+@Composable
+fun DateStepper(date: LocalDate, onChange: (LocalDate) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StepperColumn(
+            value = date.dayOfMonth.toString().padStart(2, '0'),
+            onUp = { onChange(date.plus(DatePeriod(days = 1))) },
+            onDown = { onChange(date.plus(DatePeriod(days = -1))) },
+        )
+        Text("/", Modifier.padding(horizontal = 10.dp), style = handStyle(34.sp, Paper.subtle))
+        StepperColumn(
+            value = date.monthNumber.toString().padStart(2, '0'),
+            onUp = { onChange(date.plus(DatePeriod(months = 1))) },
+            onDown = { onChange(date.plus(DatePeriod(months = -1))) },
+        )
+        Text("/", Modifier.padding(horizontal = 10.dp), style = handStyle(34.sp, Paper.subtle))
+        StepperColumn(
+            value = date.year.toString(),
+            onUp = { onChange(date.plus(DatePeriod(years = 1))) },
+            onDown = { onChange(date.plus(DatePeriod(years = -1))) },
         )
     }
 }

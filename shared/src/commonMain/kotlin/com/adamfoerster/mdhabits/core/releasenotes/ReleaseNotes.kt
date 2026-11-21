@@ -44,6 +44,26 @@ object ReleaseNotes {
 
     val all: List<ReleaseNote> = listOf(
         ReleaseNote(
+            version = "0.29.0",
+            features = listOf(
+                LocalizedText(
+                    "Ad-hoc tasks can now have a due date: done by then, they earn their points; if the date passes, the points are deducted.",
+                    "Tarefas avulsas agora podem ter um prazo: feitas até a data, ganham os pontos; se o prazo passar, os pontos são descontados.",
+                    "Las tareas sueltas ahora pueden tener fecha límite: hechas a tiempo ganan sus puntos; si la fecha pasa, se descuentan.",
+                ),
+            ),
+        ),
+        ReleaseNote(
+            version = "0.28.0",
+            features = listOf(
+                LocalizedText(
+                    "The Android widget now has a \"+\" button that opens the app straight on the new task form.",
+                    "O widget do Android agora tem um botão \"+\" que abre o app direto no formulário de nova tarefa.",
+                    "El widget de Android ahora tiene un botón \"+\" que abre la app directamente en el formulario de nueva tarea.",
+                ),
+            ),
+        ),
+        ReleaseNote(
             version = "0.27.0",
             features = listOf(
                 LocalizedText(

@@ -6,6 +6,7 @@ import com.adamfoerster.mdhabits.domain.model.Penalty
 import com.adamfoerster.mdhabits.domain.model.PersonalValue
 import com.adamfoerster.mdhabits.domain.model.PointsEvent
 import com.adamfoerster.mdhabits.domain.model.PointsSource
+import com.adamfoerster.mdhabits.domain.model.SLIP_SOURCES
 import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.Reward
 import com.adamfoerster.mdhabits.domain.model.Task
@@ -323,7 +324,7 @@ class MarkdownPointsLedgerRepository(private val weeks: MarkdownWeekStore) : Poi
             weekId = weekId,
             completedTasks = week.filter { it.source == PointsSource.TASK && it.delta > 0 },
             achievedObjectives = week.filter { it.source == PointsSource.OBJECTIVE && it.delta > 0 },
-            penalties = week.filter { it.source == PointsSource.PENALTY || it.source == PointsSource.HABIT_MISS },
+            penalties = week.filter { it.source in SLIP_SOURCES },
             redemptions = week.filter { it.source == PointsSource.REWARD },
             earned = earned,
             spent = spent,

@@ -279,8 +279,9 @@ class PenalizeMissedHabitsUseCase(
     private val weeksBack: Int = 4,
 ) {
     suspend operator fun invoke() {
-        val habits = tasks.observeTasks(activeOnly = true).first()
-            .filter { it.recurrence == Recurrence.HABIT }
+        val active = tasks.observeTasks(activeOnly = true).first()
+        chargeMissedDeadlines(active)
+        val habits = active.filter { it.recurrence == Recurrence.HABIT }
         if (habits.isEmpty()) return
 
         val today = weekCalculator.today()
@@ -318,6 +319,35 @@ class PenalizeMissedHabitsUseCase(
                     )
                 }
             }
+        }
+    }
+
+    /**
+     * Charges the [Task.points] of every ad-hoc task whose [Task.dueDate] is past and which wasn't
+     * done by then (never done, or done only after the deadline). The charge goes into the current
+     * week's ledger, once: the task remembers the deadline it was charged for ([Task.dueMissedOn]).
+     * Doing the task late still credits its points, so a late task nets out to zero.
+     */
+    private suspend fun chargeMissedDeadlines(active: List<Task>) {
+        val today = weekCalculator.today()
+        val weekId = weekCalculator.weekId(today)
+        for (task in active) {
+            val due = task.dueDate ?: continue
+            if (task.recurrence != Recurrence.ADHOC || due >= today || task.dueMissedOn == due) continue
+            val doneOn = task.doneOn
+            if (doneOn != null && doneOn <= due) continue
+            ledger.append(
+                PointsEvent(
+                    id = newId("L"),
+                    timestamp = clock.now(),
+                    weekId = weekId,
+                    source = PointsSource.DEADLINE_MISS,
+                    refId = missRefId(task.id, due),
+                    label = task.title,
+                    delta = -task.points,
+                ),
+            )
+            tasks.upsert(task.copy(dueMissedOn = due))
         }
     }
 

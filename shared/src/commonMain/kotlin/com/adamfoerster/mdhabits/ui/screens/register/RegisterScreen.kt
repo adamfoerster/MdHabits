@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,6 +74,7 @@ import com.adamfoerster.mdhabits.ui.components.paperCard
 import com.adamfoerster.mdhabits.ui.components.paperClick
 import com.adamfoerster.mdhabits.ui.components.rememberToastState
 import com.adamfoerster.mdhabits.ui.components.sansStyle
+import com.adamfoerster.mdhabits.ui.navigation.NewTaskRequest
 import com.adamfoerster.mdhabits.ui.theme.Paper
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -103,6 +105,16 @@ fun RegisterScreen(
     var showSheet by remember { mutableStateOf(false) }
     var editingId by remember { mutableStateOf<String?>(null) }
     val toast = rememberToastState()
+
+    // The widget's "+" lands here: open the new-task form once.
+    val newTaskRequested by NewTaskRequest.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(newTaskRequested) {
+        if (newTaskRequested) {
+            tab = CadTab.TASKS
+            showSheet = true
+            NewTaskRequest.pending.value = false
+        }
+    }
 
     val plural = tabLabel(strings, tab).lowercase()
     val matchingTasks = state.searchTasks(query)
@@ -232,7 +244,7 @@ fun RegisterScreen(
                     close()
                 }
             },
-            onSave = { name, points, recurrence, daysOfWeek, linkIds, healthGoal, reminder ->
+            onSave = { name, points, recurrence, daysOfWeek, linkIds, healthGoal, reminder, dueDate ->
                 val valueIds = linkIds.filter { id -> state.values.any { it.id == id } }
                 val objectiveIds = linkIds.filter { id -> state.objectives.any { it.id == id } }
                 val id = editingId
@@ -243,9 +255,9 @@ fun RegisterScreen(
                         if (id != null) viewModel.updateObjective(id, name, points) else viewModel.addObjective(name, points)
                     EntityKind.TASK ->
                         if (id != null) {
-                            viewModel.updateTask(id, name, points, recurrence, daysOfWeek, valueIds, objectiveIds, healthGoal, reminder)
+                            viewModel.updateTask(id, name, points, recurrence, daysOfWeek, valueIds, objectiveIds, healthGoal, reminder, dueDate)
                         } else {
-                            viewModel.addTask(name, points, recurrence, daysOfWeek, valueIds, objectiveIds, healthGoal, reminder)
+                            viewModel.addTask(name, points, recurrence, daysOfWeek, valueIds, objectiveIds, healthGoal, reminder, dueDate)
                         }
                     EntityKind.PENALTY ->
                         if (id != null) viewModel.updatePenalty(id, name, points) else viewModel.addPenalty(name, points)
@@ -270,6 +282,7 @@ private fun initialFor(tab: CadTab, state: RegisterUiState, id: String): EntityF
             linkIds = it.linkedValueIds + it.linkedObjectiveIds,
             healthGoal = it.healthGoal,
             reminder = it.reminder,
+            dueDate = it.dueDate,
         )
     }
     CadTab.OBJECTIVES -> state.objectives.find { it.id == id }?.let { EntityFormInitial(it.title, it.points) }
@@ -524,7 +537,7 @@ private fun itemsFor(
                 name = task.title,
                 meta = (
                     state.linkedNames(task) + strings.frequencyLabel(task) +
-                        listOfNotNull(task.reminder?.let { "⏰ $it" })
+                        listOfNotNull(task.reminder?.let { "⏰ $it" }, task.dueDate?.let { "📅 $it" })
                     ).joinToString(" · "),
                 pointsLabel = "+${task.points}", pointsColor = Paper.ink,
             )

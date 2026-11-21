@@ -34,7 +34,11 @@ import com.adamfoerster.mdhabits.domain.model.ReminderTime
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.ui.theme.Paper
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.isoDayNumber
 import kotlin.math.roundToLong
 
@@ -56,6 +60,7 @@ data class EntityFormInitial(
     val linkIds: List<String> = emptyList(),
     val healthGoal: HealthGoal? = null,
     val reminder: ReminderTime? = null,
+    val dueDate: LocalDate? = null,
 )
 
 /** Whether a task with this frequency is due on particular days, and so can have a reminder. */
@@ -89,6 +94,7 @@ fun EntityFormSheet(
         linkIds: List<String>,
         healthGoal: HealthGoal?,
         reminder: ReminderTime?,
+        dueDate: LocalDate?,
     ) -> Unit,
 ) {
     val strings = LocalStrings.current
@@ -118,6 +124,7 @@ fun EntityFormSheet(
     val healthGoal = healthMetric?.let { parseHealthGoal(it, healthComparison, healthTarget) }
     var reminder by remember { mutableStateOf(initial?.reminder) }
     var reminderDenied by remember { mutableStateOf(false) }
+    var dueDate by remember { mutableStateOf(initial?.dueDate) }
     var moreExpanded by remember {
         mutableStateOf(initial != null && (initial.healthGoal != null || initial.linkIds.isNotEmpty()))
     }
@@ -160,6 +167,28 @@ fun EntityFormSheet(
                         ) { index ->
                             val day = DayOfWeek(index + 1)
                             daysOfWeek = if (day in daysOfWeek) daysOfWeek - day else daysOfWeek + day
+                        }
+                    }
+                }
+                if (recurrence == Recurrence.ADHOC) {
+                    FormCard(title = strings.cad.dueLabel) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                dueDate?.let { strings.cad.due(it.toString()) } ?: strings.cad.dueOff,
+                                Modifier.weight(1f),
+                                style = sansStyle(15.sp, Paper.ink, FontWeight.SemiBold),
+                            )
+                            PaperSwitch(checked = dueDate != null) { on ->
+                                dueDate = if (on) {
+                                    Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                                } else {
+                                    null
+                                }
+                            }
+                        }
+                        dueDate?.let { date ->
+                            DateStepper(date, onChange = { dueDate = it })
+                            Text(strings.cad.dueHint, style = sansStyle(11.5.sp, Paper.muted))
                         }
                     }
                 }
@@ -267,6 +296,7 @@ fun EntityFormSheet(
                 onSave(
                     name.trim(), points.toIntOrNull() ?: 0, recurrence, days, linkIds,
                     healthGoal.takeIf { isTask }, savedReminder,
+                    dueDate.takeIf { isTask && recurrence == Recurrence.ADHOC },
                 )
             }
             if (onDelete != null) {

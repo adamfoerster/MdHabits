@@ -11,6 +11,7 @@ import com.adamfoerster.mdhabits.domain.model.Penalty
 import com.adamfoerster.mdhabits.domain.model.PersonalValue
 import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.ReminderTime
+import kotlinx.datetime.LocalDate
 import com.adamfoerster.mdhabits.domain.model.Reward
 import com.adamfoerster.mdhabits.domain.model.Task
 import com.adamfoerster.mdhabits.domain.model.stampHabitSince
@@ -131,6 +132,7 @@ class RegisterViewModel(
         objectiveIds: List<String> = emptyList(),
         healthGoal: HealthGoal? = null,
         reminder: ReminderTime? = null,
+        dueDate: LocalDate? = null,
     ) = viewModelScope.launch {
         taskRepository.upsert(
             Task(
@@ -143,6 +145,7 @@ class RegisterViewModel(
                 linkedObjectiveIds = objectiveIds,
                 healthGoal = healthGoal,
                 reminder = reminder,
+                dueDate = dueDate.takeIf { recurrence == Recurrence.ADHOC },
             ).stampHabitSince(weekCalculator.today()),
         )
     }
@@ -184,6 +187,7 @@ class RegisterViewModel(
         objectiveIds: List<String> = emptyList(),
         healthGoal: HealthGoal? = null,
         reminder: ReminderTime? = null,
+        dueDate: LocalDate? = null,
     ) = viewModelScope.launch {
         val existing = taskRepository.getTask(id) ?: return@launch
         taskRepository.upsert(
@@ -196,6 +200,9 @@ class RegisterViewModel(
                 linkedObjectiveIds = objectiveIds,
                 healthGoal = healthGoal,
                 reminder = reminder,
+                dueDate = dueDate.takeIf { recurrence == Recurrence.ADHOC },
+                // A changed deadline is a new one: it can be charged again if missed.
+                dueMissedOn = existing.dueMissedOn.takeIf { dueDate != null && it == dueDate },
             ).stampHabitSince(weekCalculator.today()),
         )
     }

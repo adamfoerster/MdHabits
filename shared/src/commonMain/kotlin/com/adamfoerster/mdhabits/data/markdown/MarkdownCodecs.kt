@@ -124,6 +124,8 @@ object MarkdownCodecs {
                 task.healthGoal?.let { put("health_goal", encodeHealthGoal(it)) }
                 task.doneOn?.let { put("done_on", JsonPrimitive(it.toString())) }
                 task.reminder?.let { put("reminder", JsonPrimitive(it.toString())) }
+                task.dueDate?.let { put("due", JsonPrimitive(it.toString())) }
+                task.dueMissedOn?.let { put("due_missed", JsonPrimitive(it.toString())) }
             },
         ),
     )
@@ -143,6 +145,8 @@ object MarkdownCodecs {
             healthGoal = (doc.fields["health_goal"] as? JsonObject)?.let { decodeHealthGoal(it) },
             doneOn = doc.string("done_on")?.toLocalDateOrNull(),
             reminder = doc.string("reminder")?.let { ReminderTime.parseOrNull(it) },
+            dueDate = doc.string("due")?.toLocalDateOrNull(),
+            dueMissedOn = doc.string("due_missed")?.toLocalDateOrNull(),
         )
     }
 
@@ -406,12 +410,12 @@ object MarkdownCodecs {
      */
     private fun encodeLedgerLine(event: PointsEvent, links: NoteLinks): String {
         val (id, suffix) = when (event.source) {
-            PointsSource.HABIT_MISS -> event.refId.substringBefore('@') to
+            PointsSource.HABIT_MISS, PointsSource.DEADLINE_MISS -> event.refId.substringBefore('@') to
                 event.refId.substringAfter('@', "").let { if (it.isEmpty()) "" else "@$it" }
             else -> event.refId to ""
         }
         val dir = when (event.source) {
-            PointsSource.TASK, PointsSource.HABIT_MISS -> TASKS_DIR
+            PointsSource.TASK, PointsSource.HABIT_MISS, PointsSource.DEADLINE_MISS -> TASKS_DIR
             PointsSource.PENALTY -> "penalties"
             PointsSource.REWARD -> "rewards"
             // Objectives live inside the year's theme note.

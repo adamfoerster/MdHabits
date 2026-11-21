@@ -84,11 +84,25 @@ private fun WidgetBody(content: WidgetContent) {
             .cornerRadius(16.dp)
             .padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
-        Text(
-            text = strings.appName,
-            modifier = GlanceModifier.fillMaxWidth().clickable(actionStartActivity<MainActivity>()),
-            style = TextStyle(color = ColorProvider(Paper.inkDeep), fontSize = 16.sp, fontWeight = FontWeight.Bold),
-        )
+        Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = strings.appName,
+                modifier = GlanceModifier.defaultWeight().clickable(actionStartActivity<MainActivity>()),
+                style = TextStyle(color = ColorProvider(Paper.inkDeep), fontSize = 16.sp, fontWeight = FontWeight.Bold),
+            )
+            // Opens the app on the new-task form (Glance has no text fields to type it here).
+            Text(
+                text = "+",
+                modifier = GlanceModifier
+                    .padding(horizontal = 12.dp)
+                    .clickable(
+                        actionStartActivity<MainActivity>(
+                            actionParametersOf(ActionParameters.Key<Boolean>(MainActivity.EXTRA_NEW_TASK) to true),
+                        ),
+                    ),
+                style = TextStyle(color = ColorProvider(Paper.accent), fontSize = 22.sp, fontWeight = FontWeight.Bold),
+            )
+        }
         Spacer(GlanceModifier.height(4.dp))
         if (snapshot.isEmpty) {
             Text(

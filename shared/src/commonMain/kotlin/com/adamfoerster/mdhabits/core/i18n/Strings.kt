@@ -369,6 +369,8 @@ private val En = Strings(
         emptyTitle = "Nothing here", emptyQueryTemplate = "Nothing matches “%1”.",
         emptyFilter = "No tasks with this filter.", emptyList = "You haven't added any yet.",
         resetAll = "Clear search and filters",
+        dueLabel = "Due date", dueOff = "No due date", dueTemplate = "Due %1",
+        dueHint = "Done by this day, it earns the points; otherwise they are deducted.",
     ),
     cadPenalties = "Penalties", cadRewards = "Rewards",
     filterAll = "All",
@@ -531,6 +533,8 @@ private val Pt = Strings(
         emptyTitle = "Nada por aqui", emptyQueryTemplate = "Nenhum item corresponde a “%1”.",
         emptyFilter = "Nenhuma tarefa com esse filtro.", emptyList = "Você ainda não cadastrou nenhum.",
         resetAll = "Limpar busca e filtros",
+        dueLabel = "Prazo", dueOff = "Sem prazo", dueTemplate = "Prazo %1",
+        dueHint = "Feita até esse dia, ganha os pontos; senão, eles são descontados.",
     ),
     cadPenalties = "Penalidades", cadRewards = "Recompensas",
     filterAll = "Todas",
@@ -693,6 +697,8 @@ private val Es = Strings(
         emptyTitle = "Nada por aquí", emptyQueryTemplate = "Nada coincide con “%1”.",
         emptyFilter = "Ninguna tarea con este filtro.", emptyList = "Aún no has añadido ninguno.",
         resetAll = "Borrar búsqueda y filtros",
+        dueLabel = "Fecha límite", dueOff = "Sin fecha límite", dueTemplate = "Hasta %1",
+        dueHint = "Hecha hasta ese día, gana los puntos; si no, se descuentan.",
     ),
     cadPenalties = "Penalizaciones", cadRewards = "Recompensas",
     filterAll = "Todas",
@@ -823,7 +829,14 @@ data class CadStrings(
     val emptyFilter: String,
     val emptyList: String,
     val resetAll: String,
+    val dueLabel: String,
+    val dueOff: String,
+    val dueTemplate: String,
+    val dueHint: String,
 ) {
+    fun due(date: String): String = dueTemplate.replace("%1", date)
+
+
     /** "Search tasks" — [plural] is the lowercase tab name. */
     fun search(plural: String): String = searchTemplate.replace("%1", plural)
 

@@ -100,6 +100,14 @@ data class Task(
      * reminder. Only per-day tasks ([isPerDay]) remind: see [reminderDays].
      */
     val reminder: ReminderTime? = null,
+    /**
+     * The deadline of a [Recurrence.ADHOC] task: done on or before it earns [points] as usual, but a
+     * deadline that passes undone costs [points] (a [PointsSource.DEADLINE_MISS] entry, charged once
+     * by [com.adamfoerster.mdhabits.domain.usecase.PenalizeMissedHabitsUseCase]). Null for no deadline.
+     */
+    val dueDate: LocalDate? = null,
+    /** The [dueDate] already charged as missed, so the sweep never charges the same deadline twice. */
+    val dueMissedOn: LocalDate? = null,
 ) {
     /** Whether the task belongs in a "today" list on the given weekday. */
     fun isDueOn(dayOfWeek: DayOfWeek): Boolean = when (recurrence) {
@@ -224,8 +232,11 @@ data class Reward(
     val description: String = "",
 )
 
-/** Where a [PointsEvent] originated. [HABIT_MISS] is a day a [Recurrence.HABIT] task went undone. */
-enum class PointsSource { TASK, OBJECTIVE, PENALTY, REWARD, ADJUSTMENT, HABIT_MISS }
+/**
+ * Where a [PointsEvent] originated. [HABIT_MISS] is a day a [Recurrence.HABIT] task went undone and
+ * [DEADLINE_MISS] a [Task.dueDate] that passed with its task undone.
+ */
+enum class PointsSource { TASK, OBJECTIVE, PENALTY, REWARD, ADJUSTMENT, HABIT_MISS, DEADLINE_MISS }
 
 /** An append-only ledger entry. The balance is the running sum of every [delta]. */
 data class PointsEvent(
@@ -239,9 +250,12 @@ data class PointsEvent(
     val delta: Int,
 )
 
+/** The ledger sources a weekly report lists as slips (deductions). */
+val SLIP_SOURCES: Set<PointsSource> = setOf(PointsSource.PENALTY, PointsSource.HABIT_MISS, PointsSource.DEADLINE_MISS)
+
 /** [PointsEvent.label] for display: a missed habit day also names the day it is charged for. */
 val PointsEvent.displayLabel: String
-    get() = if (source == PointsSource.HABIT_MISS && '@' in refId) "$label (${refId.substringAfter('@')})" else label
+    get() = if ((source == PointsSource.HABIT_MISS || source == PointsSource.DEADLINE_MISS) && '@' in refId) "$label (${refId.substringAfter('@')})" else label
 
 /** A weekly review. [submittedAt] is null while the review is still a draft. */
 data class WeeklyReview(

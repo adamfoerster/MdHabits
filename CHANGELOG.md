@@ -5,6 +5,24 @@ All notable changes to MdHabits. Versions follow [Semantic Versioning](https://s
 The short, user-facing version of these notes is shown in the app (the "What's new" popup and
 *Settings → About → Release notes*) and lives in `ReleaseNotes.kt`.
 
+### 0.29.0 — Tasks with a due date
+
+- An ad-hoc task can have a due date (a "Due date" card in the task form, a 📅 on the management
+  list and the date on Home's row). It works like a habit's points in reverse: done on or before the
+  date it earns its points as usual; once the date has passed undone, `PenalizeMissedHabitsUseCase`
+  (the Home-open sweep) appends one `DEADLINE_MISS` ledger entry (refId `<taskId>@<dueDate>`, listed
+  among the week report's slips) deducting them. The task keeps `due_missed` so the same deadline is
+  never charged twice; editing the date makes it chargeable again. Doing it late still credits its
+  points, so a late task nets out to zero. Stored as `due` / `due_missed` in the task note.
+
+### 0.28.0 — New-task button on the widget
+
+- The home-screen tasks widget has a "+" button in its header that opens the app straight on the
+  new-task form (Register tab). Glance can't host a text field, so the form is the app's own.
+  Implementation: the button starts `MainActivity` (now `singleTask`) with a `new_task` extra, which
+  sets `NewTaskRequest.pending`; `MainScaffold` switches to the Register tab and `RegisterScreen`
+  opens the form and clears the request.
+
 ### 0.27.0 — Android home-screen widget and adding tasks through Gemini
 
 - On Android 16+, assistants such as Gemini can add a task to MdHabits ("add *buy bread* to

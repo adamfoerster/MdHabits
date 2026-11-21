@@ -412,7 +412,7 @@ private fun TaskRow(row: HomeTaskRow, strings: Strings, onToggle: (Boolean) -> U
                 style = sansStyle(15.sp, if (done) Paper.doneText else if (row.missed) Paper.accent else Paper.ink, FontWeight.Medium)
                     .copy(textDecoration = if (done) TextDecoration.LineThrough else TextDecoration.None),
             )
-            val subtitle = (row.linkedNames + strings.frequencyLabel(row.task)).joinToString(" · ")
+            val subtitle = (row.linkedNames + strings.frequencyLabel(row.task) + listOfNotNull(row.task.dueDate?.let { strings.cad.due(it.toString()) })).joinToString(" · ")
             Text(subtitle, style = sansStyle(11.sp, Paper.faded))
             row.task.healthGoal?.let { goal ->
                 Text(
