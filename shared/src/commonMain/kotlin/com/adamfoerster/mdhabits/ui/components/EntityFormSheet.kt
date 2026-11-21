@@ -153,6 +153,7 @@ fun EntityFormSheet(
                         Triple(Recurrence.HABIT, strings.recurHabit, strings.recurHabitHint),
                         Triple(Recurrence.DAYS_OF_WEEK, strings.recurDaysOfWeek, strings.recurDaysOfWeekHint),
                         Triple(Recurrence.WEEKLY, strings.recurWeekly, strings.recurWeeklyHint),
+                        Triple(Recurrence.MONTHLY, strings.cad.recurMonthly, strings.cad.recurMonthlyHint),
                         Triple(Recurrence.ADHOC, strings.recurAdhoc, strings.recurAdhocHint),
                     )
                     options.forEach { (option, label, hint) ->

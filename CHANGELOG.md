@@ -5,6 +5,15 @@ All notable changes to MdHabits. Versions follow [Semantic Versioning](https://s
 The short, user-facing version of these notes is shown in the app (the "What's new" popup and
 *Settings → About → Release notes*) and lives in `ReleaseNotes.kt`.
 
+### 0.30.0 — Monthly tasks
+
+- New `MONTHLY` frequency: a task done once per calendar month, any day. Home lists it under "This
+  month"; checking it off credits its points like a weekly task and stamps `Task.doneOn` with the day,
+  and the task counts as done only while that day is in the current month (`Task.isDoneInMonthOf`), so
+  it is due again on the 1st with no sweep. Unchecking clears the stamp. Added to the task form, the
+  management filter, the frequency labels and the Gemini AppFunction. `observeCompletedTaskIds` still
+  reports only ad-hoc tasks from `doneOn`. Not listed on the Android widget.
+
 ### 0.29.0 — Tasks with a due date
 
 - An ad-hoc task can have a due date (a "Due date" card in the task form, a 📅 on the management

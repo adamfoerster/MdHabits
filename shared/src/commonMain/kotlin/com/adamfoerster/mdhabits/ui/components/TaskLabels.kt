@@ -19,6 +19,7 @@ fun Strings.frequencyLabel(task: Task): String = when (task.recurrence) {
     Recurrence.DAILY -> recurDaily.lowercase()
     Recurrence.HABIT -> recurHabit.lowercase()
     Recurrence.WEEKLY -> recurWeekly.lowercase()
+    Recurrence.MONTHLY -> cad.recurMonthly.lowercase()
     Recurrence.DAYS_OF_WEEK -> task.daysOfWeek
         .sortedBy { it.isoDayNumber }
         .joinToString(", ") { daysShort[it.isoDayNumber - 1].lowercase() }

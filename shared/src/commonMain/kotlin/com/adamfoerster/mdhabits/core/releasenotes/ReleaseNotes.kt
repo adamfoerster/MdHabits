@@ -44,6 +44,16 @@ object ReleaseNotes {
 
     val all: List<ReleaseNote> = listOf(
         ReleaseNote(
+            version = "0.30.0",
+            features = listOf(
+                LocalizedText(
+                    "New monthly task: do it once a month, any day. It appears under \"This month\" and comes back on the first of the next month.",
+                    "Nova tarefa mensal: faça uma vez por mês, em qualquer dia. Ela aparece em \"Este mês\" e volta no dia 1 do mês seguinte.",
+                    "Nueva tarea mensual: hazla una vez al mes, cualquier día. Aparece en \"Este mes\" y vuelve el día 1 del mes siguiente.",
+                ),
+            ),
+        ),
+        ReleaseNote(
             version = "0.29.0",
             features = listOf(
                 LocalizedText(

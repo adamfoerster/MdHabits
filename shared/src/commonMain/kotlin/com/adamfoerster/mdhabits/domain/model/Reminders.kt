@@ -41,7 +41,7 @@ val Task.reminderDays: Set<DayOfWeek>
         return when (recurrence) {
             Recurrence.DAILY, Recurrence.HABIT -> DayOfWeek.entries.toSet()
             Recurrence.DAYS_OF_WEEK -> daysOfWeek.toSet()
-            Recurrence.WEEKLY, Recurrence.ADHOC -> emptySet()
+            Recurrence.WEEKLY, Recurrence.ADHOC, Recurrence.MONTHLY -> emptySet()
         }
     }
 

@@ -509,6 +509,7 @@ private fun filterLabel(strings: Strings, filter: TaskFilter) = when (filter) {
     TaskFilter.ALL -> strings.filterAll
     TaskFilter.ADHOC -> strings.recurAdhoc
     TaskFilter.WEEKLY -> strings.recurWeekly
+    TaskFilter.MONTHLY -> strings.cad.recurMonthly
     TaskFilter.DAILY -> strings.recurDaily
     TaskFilter.DAYS_OF_WEEK -> strings.recurDaysOfWeek
     TaskFilter.HABIT -> strings.recurHabit

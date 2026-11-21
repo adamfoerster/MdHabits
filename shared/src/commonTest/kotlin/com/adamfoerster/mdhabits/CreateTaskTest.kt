@@ -65,7 +65,7 @@ class CreateTaskTest {
         assertFailsWith<InvalidTaskRequestException> { createTask("x".repeat(201)) }
         assertFailsWith<InvalidTaskRequestException> { createTask("Ler", points = -2) }
         assertFailsWith<InvalidTaskRequestException> { createTask("Ler", points = 1001) }
-        assertFailsWith<InvalidTaskRequestException> { createTask("Ler", frequency = "MONTHLY") }
+        assertFailsWith<InvalidTaskRequestException> { createTask("Ler", frequency = "FORTNIGHTLY") }
         assertFailsWith<InvalidTaskRequestException> { createTask("Ler", frequency = "DAYS_OF_WEEK") }
         assertFailsWith<InvalidTaskRequestException> { createTask("Ler", daysOfWeek = listOf("segunda")) }
         assertEquals(emptyList(), repo.observeTasks().first())

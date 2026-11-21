@@ -32,6 +32,7 @@ enum class TaskFilter(private val recurrence: Recurrence?) {
     ALL(null),
     ADHOC(Recurrence.ADHOC),
     WEEKLY(Recurrence.WEEKLY),
+    MONTHLY(Recurrence.MONTHLY),
     DAILY(Recurrence.DAILY),
     DAYS_OF_WEEK(Recurrence.DAYS_OF_WEEK),
     HABIT(Recurrence.HABIT),

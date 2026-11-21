@@ -6,6 +6,7 @@ import com.adamfoerster.mdhabits.domain.model.Penalty
 import com.adamfoerster.mdhabits.domain.model.PersonalValue
 import com.adamfoerster.mdhabits.domain.model.PointsEvent
 import com.adamfoerster.mdhabits.domain.model.PointsSource
+import com.adamfoerster.mdhabits.domain.model.Recurrence
 import com.adamfoerster.mdhabits.domain.model.SLIP_SOURCES
 import com.adamfoerster.mdhabits.domain.model.Reward
 import com.adamfoerster.mdhabits.domain.model.Task
@@ -101,6 +102,8 @@ class InMemoryTaskRepository : TaskRepository {
             val updated = (current ?: TaskInstance(taskId, weekId)).completing(completed, on, perDay)
             list.filterNot { it.taskId == taskId && it.weekId == weekId } + updated
         }
+        val task = getTask(taskId)
+        if (task?.recurrence == Recurrence.MONTHLY) upsert(task.copy(doneOn = if (completed) on else null))
     }
 }
 

@@ -84,6 +84,7 @@ data class HomeUiState(
     val todayTasks: List<HomeTaskRow> = emptyList(),
     /** Weekly tasks, completed once per ISO week. */
     val weeklyTasks: List<HomeTaskRow> = emptyList(),
+    val monthlyTasks: List<HomeTaskRow> = emptyList(),
     /** Unscheduled tasks, done whenever. */
     val adhocTasks: List<HomeTaskRow> = emptyList(),
     /**
@@ -105,7 +106,7 @@ data class HomeUiState(
     val pastDays: List<HomePastDay> = emptyList(),
     val loading: Boolean = true,
 ) {
-    val allTasks: List<HomeTaskRow> get() = todayTasks + weeklyTasks + adhocTasks
+    val allTasks: List<HomeTaskRow> get() = todayTasks + weeklyTasks + monthlyTasks + adhocTasks
 }
 
 class HomeViewModel(
@@ -168,6 +169,8 @@ class HomeViewModel(
             // completion only counts on the day it was made; weekly ones hold for the week, ad-hoc ones forever.
             val completed = if (task.isPerDay) {
                 today in instance?.completedDates.orEmpty()
+            } else if (task.recurrence == Recurrence.MONTHLY) {
+                task.isDoneInMonthOf(today)
             } else if (task.recurrence == Recurrence.ADHOC) {
                 // Done once, in any week, and never back on the list.
                 task.id in everCompleted
@@ -216,6 +219,7 @@ class HomeViewModel(
             hasTheme = theme != null,
             todayTasks = rows.filter { it.task.isDueOn(today.dayOfWeek) },
             weeklyTasks = rows.filter { it.task.recurrence == Recurrence.WEEKLY },
+            monthlyTasks = rows.filter { it.task.recurrence == Recurrence.MONTHLY },
             adhocTasks = adhocRows,
             visibleAdhocTasks = adhocRows,
             // The ledger has no change feed of its own, but every entry moves the balance this

@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
  * @property id The task's unique id.
  * @property title The task's title.
  * @property points The points the user earns when completing it (or loses each day a HABIT is missed).
- * @property frequency How often the task is due: ADHOC, DAILY, WEEKLY, DAYS_OF_WEEK or HABIT.
+ * @property frequency How often the task is due: ADHOC, DAILY, WEEKLY, MONTHLY, DAYS_OF_WEEK or HABIT.
  * @property daysOfWeek The weekdays a DAYS_OF_WEEK task is due on, in English (MONDAY…SUNDAY); empty otherwise.
  */
 @AppFunctionSerializable(isDescribedByKDoc = true)
@@ -50,7 +50,7 @@ abstract class BaseTaskAppFunctionService : AppFunctionService() {
      *
      * @param title What the task is, as the user said it, in the user's language, e.g. "Buy bread". Required; at most 200 characters.
      * @param points Points earned when the task is done, from 1 to 1000. Omit it unless the user says a number; it defaults to 5.
-     * @param frequency How often the task is due. ADHOC: a one-off to-do, done once (the default). DAILY: every day. WEEKLY: once a week, any day. DAYS_OF_WEEK: on specific weekdays, given in daysOfWeek. HABIT: every day, and missing a day costs its points. Omit it for a one-off task.
+     * @param frequency How often the task is due. ADHOC: a one-off to-do, done once (the default). DAILY: every day. WEEKLY: once a week, any day. MONTHLY: once a month, any day. DAYS_OF_WEEK: on specific weekdays, given in daysOfWeek. HABIT: every day, and missing a day costs its points. Omit it for a one-off task.
      * @param daysOfWeek The weekdays a DAYS_OF_WEEK task is due on, in English: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY. Giving days without a frequency makes it a DAYS_OF_WEEK task.
      * @return The task as saved.
      * @throws AppFunctionInvalidArgumentException If the title is empty or too long, points are out of range, the frequency or a day is unknown, DAYS_OF_WEEK has no days, or a pending task with the same title already exists. If thrown, tell the user what was wrong and ask them to correct it.
@@ -60,7 +60,7 @@ abstract class BaseTaskAppFunctionService : AppFunctionService() {
     suspend fun createTask(
         title: String,
         points: Int? = null,
-        @AppFunctionStringValueConstraint(enumValues = ["ADHOC", "DAILY", "WEEKLY", "DAYS_OF_WEEK", "HABIT"])
+        @AppFunctionStringValueConstraint(enumValues = ["ADHOC", "DAILY", "WEEKLY", "MONTHLY", "DAYS_OF_WEEK", "HABIT"])
         frequency: String? = null,
         daysOfWeek: List<String>? = null,
     ): CreatedTask = withContext(Dispatchers.Default) {

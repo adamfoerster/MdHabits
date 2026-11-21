@@ -189,7 +189,7 @@ class MarkdownTaskRepository(
     override fun observeCompletedTaskIds(): Flow<Set<String>> =
         combine(weeks.observeNotes(), observeAll()) { notes, tasks ->
             notes.values.flatMap { it.instances }.filter { it.completed }.mapTo(mutableSetOf()) { it.taskId } +
-                tasks.filter { it.doneOn != null }.map { it.id }
+                tasks.filter { it.recurrence == Recurrence.ADHOC && it.doneOn != null }.map { it.id }
         }
 
     override suspend fun setPlanned(weekId: String, taskIds: List<String>) {
@@ -215,7 +215,7 @@ class MarkdownTaskRepository(
                 .withTitle(task?.title)
             note.copy(instances = note.instances.filterNot { it.taskId == taskId } + updated)
         }
-        if (task?.recurrence == Recurrence.ADHOC) {
+        if (task?.recurrence == Recurrence.ADHOC || task?.recurrence == Recurrence.MONTHLY) {
             val doneOn = if (completed) on else null
             if (task.doneOn != doneOn) save(task.copy(doneOn = doneOn))
         }

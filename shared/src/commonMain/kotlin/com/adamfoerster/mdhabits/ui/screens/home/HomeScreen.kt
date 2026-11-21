@@ -150,6 +150,7 @@ fun HomeScreen(
                 val sections = listOf(
                     strings.todaySection to state.todayTasks,
                     strings.weeklySection to state.weeklyTasks,
+                    strings.cad.monthlySection to state.monthlyTasks,
                     strings.adhocSection to state.visibleAdhocTasks,
                 ).filter { it.second.isNotEmpty() }
                 sections.forEachIndexed { index, (label, rows) ->

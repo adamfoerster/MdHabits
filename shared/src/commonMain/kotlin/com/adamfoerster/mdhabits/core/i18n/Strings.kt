@@ -371,6 +371,7 @@ private val En = Strings(
         resetAll = "Clear search and filters",
         dueLabel = "Due date", dueOff = "No due date", dueTemplate = "Due %1",
         dueHint = "Done by this day, it earns the points; otherwise they are deducted.",
+        recurMonthly = "Monthly", recurMonthlyHint = "Once a month, any day.", monthlySection = "This month",
     ),
     cadPenalties = "Penalties", cadRewards = "Rewards",
     filterAll = "All",
@@ -535,6 +536,7 @@ private val Pt = Strings(
         resetAll = "Limpar busca e filtros",
         dueLabel = "Prazo", dueOff = "Sem prazo", dueTemplate = "Prazo %1",
         dueHint = "Feita até esse dia, ganha os pontos; senão, eles são descontados.",
+        recurMonthly = "Mensal", recurMonthlyHint = "Uma vez por mês, em qualquer dia.", monthlySection = "Este mês",
     ),
     cadPenalties = "Penalidades", cadRewards = "Recompensas",
     filterAll = "Todas",
@@ -699,6 +701,7 @@ private val Es = Strings(
         resetAll = "Borrar búsqueda y filtros",
         dueLabel = "Fecha límite", dueOff = "Sin fecha límite", dueTemplate = "Hasta %1",
         dueHint = "Hecha hasta ese día, gana los puntos; si no, se descuentan.",
+        recurMonthly = "Mensual", recurMonthlyHint = "Una vez al mes, cualquier día.", monthlySection = "Este mes",
     ),
     cadPenalties = "Penalizaciones", cadRewards = "Recompensas",
     filterAll = "Todas",
@@ -833,6 +836,9 @@ data class CadStrings(
     val dueOff: String,
     val dueTemplate: String,
     val dueHint: String,
+    val recurMonthly: String,
+    val recurMonthlyHint: String,
+    val monthlySection: String,
 ) {
     fun due(date: String): String = dueTemplate.replace("%1", date)
 

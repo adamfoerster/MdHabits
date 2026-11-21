@@ -28,6 +28,12 @@ enum class Recurrence {
     DAYS_OF_WEEK,
 
     /**
+     * A task done once per calendar month, any day of it. It is done for the month the day it is
+     * checked off ([Task.doneOn]) and is due again on the first of the next month.
+     */
+    MONTHLY,
+
+    /**
      * A habit due every day whose points work the other way around: a day that ends without it
      * being completed *costs* [Task.points] instead of earning them. The charge is applied by
      * [com.adamfoerster.mdhabits.domain.usecase.PenalizeMissedHabitsUseCase].
@@ -91,8 +97,8 @@ data class Task(
      */
     val healthGoal: HealthGoal? = null,
     /**
-     * The day a [Recurrence.ADHOC] task was checked off — done for good. Kept on the task itself
-     * because the week note it was completed in is eventually closed and no longer read in full.
+     * The day a [Recurrence.ADHOC] task was checked off — done for good — or a [Recurrence.MONTHLY]
+     * one was last checked off (done for that month). Kept on the task itself because the week note it was completed in is eventually closed and no longer read in full.
      */
     val doneOn: LocalDate? = null,
     /**
@@ -113,8 +119,12 @@ data class Task(
     fun isDueOn(dayOfWeek: DayOfWeek): Boolean = when (recurrence) {
         Recurrence.DAILY, Recurrence.HABIT -> true
         Recurrence.DAYS_OF_WEEK -> dayOfWeek in daysOfWeek
-        Recurrence.WEEKLY, Recurrence.ADHOC -> false
+        Recurrence.WEEKLY, Recurrence.ADHOC, Recurrence.MONTHLY -> false
     }
+
+    /** Whether a [Recurrence.MONTHLY] task is already done in the calendar month of [today]. */
+    fun isDoneInMonthOf(today: LocalDate): Boolean =
+        doneOn?.let { it.year == today.year && it.month == today.month } == true
 
     /**
      * Whether completion counts per day rather than once per ISO week: these tasks are due again
